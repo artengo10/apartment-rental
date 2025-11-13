@@ -1,4 +1,4 @@
-import { Apartment } from "@/types/apartment";
+import { Apartment } from "../types/apartment";
 
 declare global {
   interface Window {
@@ -6,13 +6,14 @@ declare global {
   }
 }
 
+// Изменяем тип параметра на HTMLDivElement вместо RefObject
 export const initializeMap = (
-  mapRef: React.RefObject<HTMLDivElement>,
+  mapElement: HTMLDivElement,
   apartments: Apartment[]
 ) => {
   if (!window.ymaps) return null;
 
-  const map = new window.ymaps.Map(mapRef.current, {
+  const map = new window.ymaps.Map(mapElement, {
     center: [56.3287, 43.8547],
     zoom: 13,
     controls: [
