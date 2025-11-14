@@ -1,69 +1,53 @@
-import MapComponent from '@/components/MapComponent';
+import SmartSearch from '@/components/SmartSearch';
+import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Хедер с черной границей снизу */}
+      {/* Хедер */}
       <header className="bg-primary text-primary-foreground px-4 py-3 sm:px-6 sm:py-4 shadow-sm border-b border-black">
         <div className="container mx-auto flex justify-between items-center">
-          {/* Логотип слева */}
-          <div className="text-left">
+          {/* Логотип как ссылка */}
+          <Link href="/" className="text-left hover:opacity-80 transition-opacity">
             <h1 className="text-xl sm:text-2xl font-bold">СъёмБронь</h1>
             <p className="text-xs sm:text-sm text-primary-foreground/80 hidden sm:block">
-              Посуточная аренда в Нижнем Новгороде
+              Умный поиск жилья в Нижнем Новгороде
             </p>
-          </div>
+          </Link>
 
-          {/* Кнопка справа - зеленая */}
           <nav>
             <button className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 rounded-md font-medium transition-colors text-sm sm:text-base border border-black">
-              Добавить квартиру
+              Добавить жилье
             </button>
           </nav>
         </div>
       </header>
 
-      {/* Основной контент */}
-      <main className="flex-1 container mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        {/* Заголовок без бордера */}
-        <div className="mb-4 sm:mb-6 p-4 bg-white">
-          <h2 className="text-xl sm:text-3xl font-bold tracking-tight mb-2 text-center sm:text-left">
-            Квартиры в Сормовском районе
+      {/* Основной контент - только умный поиск */}
+      <main className="flex-1 container mx-auto px-3 sm:px-6 py-8 sm:py-12">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight mb-4">
+            Найдем идеальное жилье для вас
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base text-center sm:text-left">
-            Найдите идеальный вариант для посуточной аренды
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Ответьте на несколько вопросов, и мы подберем лучшие варианты
+            в Сормовском районе Нижнего Новгорода
           </p>
         </div>
 
-        {/* Карта */}
-        <div className="mb-8">
-          <MapComponent />
-        </div>
-
-        {/* Блок статистики с тонкими бордерами */}
-        <div className="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
-          <div className="bg-muted p-3 sm:p-4 rounded-lg border border-gray-300">
-            <p className="text-lg sm:text-2xl font-bold text-primary">50+</p>
-            <p className="text-muted-foreground text-xs sm:text-sm">квартир в базе</p>
-          </div>
-          <div className="bg-muted p-3 sm:p-4 rounded-lg border border-gray-300">
-            <p className="text-lg sm:text-2xl font-bold text-primary">24/7</p>
-            <p className="text-muted-foreground text-xs sm:text-sm">поддержка</p>
-          </div>
-          <div className="bg-muted p-3 sm:p-4 rounded-lg border border-gray-300">
-            <p className="text-lg sm:text-2xl font-bold text-primary">100%</p>
-            <p className="text-muted-foreground text-xs sm:text-sm">безопасная оплата</p>
-          </div>
-        </div>
+        {/* Компонент умного поиска */}
+        <SmartSearch />
       </main>
 
-      {/* Футер с тонкой границей сверху */}
-      <footer className="bg-muted/50 border-t border-gray-300 mt-12 sm:mt-16">
+      {/* Футер */}
+      <footer className="bg-muted/50 border-t border-gray-300 mt-12">
         <div className="container mx-auto p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
             <div className="text-center sm:text-left">
-              <h3 className="text-base sm:text-lg font-semibold">СъёмБронь</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">Посуточная аренда квартир</p>
+              <Link href="/" className="hover:opacity-80 transition-opacity">
+                <h3 className="text-base sm:text-lg font-semibold">СъёмБронь</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">Умный поиск жилья</p>
+              </Link>
             </div>
             <div className="text-center sm:text-right">
               <p className="text-xs sm:text-sm text-muted-foreground">
