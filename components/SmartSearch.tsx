@@ -24,7 +24,7 @@ const SmartSearch = () => {
         parkingSpaces: '1',
     });
 
-    const totalApartments = 156;
+    const totalApartments = 100;
 
     const handlePropertyTypeSelect = (type: PropertyType) => {
         setSearchData(prev => ({ ...prev, propertyType: type }));

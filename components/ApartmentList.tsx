@@ -91,16 +91,13 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                                 >
                                     Позвонить
                                 </button>
+                                <button
+                                    onClick={(e) => handleBook(apartment, e)}
+                                    className="flex-1 bg-blue-600 text-white py-2 text-xs font-medium hover:bg-blue-700 transition-colors whitespace-nowrap px-2 border-l border-white border-opacity-50"
+                                >
+                                    Подробнее
+                                </button>
 
-                                {/* Кнопка "Забронировать" только для карточек с индексом > 1 */}
-                                {index > 1 && (
-                                    <button
-                                        onClick={(e) => handleBook(apartment, e)}
-                                        className="flex-1 bg-purple-600 text-white py-2 text-xs font-medium hover:bg-purple-700 transition-colors whitespace-nowrap px-2 border-l border-white border-opacity-50"
-                                    >
-                                        Забронировать
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </Link>
@@ -133,8 +130,8 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                                 key={pageNumber}
                                 onClick={() => paginate(pageNumber)}
                                 className={`w-8 h-8 rounded text-sm ${currentPage === pageNumber
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                             >
                                 {pageNumber}
@@ -152,8 +149,8 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                         onClick={prevPage}
                         disabled={currentPage === 1}
                         className={`px-3 py-1 rounded text-sm ${currentPage === 1
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
                         Назад
@@ -162,8 +159,8 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                         onClick={nextPage}
                         disabled={currentPage === totalPages}
                         className={`px-3 py-1 rounded text-sm ${currentPage === totalPages
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
                         Вперед
