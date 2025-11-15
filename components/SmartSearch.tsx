@@ -1,3 +1,4 @@
+// components/SmartSearch.tsx
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -30,12 +31,11 @@ const SmartSearch = () => {
         setSearchData(prev => ({ ...prev, propertyType: type }));
 
         if (type === 'all') {
-            // При выборе "Все квартиры" сразу переходим на карту
             router.push('/results');
         } else if (type === 'studio') {
             setCurrentStep(3);
         } else if (type === 'house') {
-            setCurrentStep(2.5); // Специальный шаг для параметров дома
+            setCurrentStep(2.5);
         } else {
             setCurrentStep(2);
         }
@@ -43,7 +43,7 @@ const SmartSearch = () => {
 
     const handleRoomCountSelect = (count: RoomCount) => {
         setSearchData(prev => ({ ...prev, roomCount: count }));
-        setCurrentStep(3);
+        // Убрали автоматический переход
     };
 
     const handleHouseParamChange = (field: string, value: any) => {
@@ -151,23 +151,42 @@ const SmartSearch = () => {
             {currentStep === 2 && searchData.propertyType === 'apartment' && (
                 <div className="text-center">
                     <h3 className="text-xl font-bold mb-6">Сколько комнат нужно?</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
                         {(['1', '2', '3', '4+', 'any'] as RoomCount[]).map((count) => (
                             <button
                                 key={count}
                                 onClick={() => handleRoomCountSelect(count)}
-                                className="p-4 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all font-semibold"
+                                className={`p-4 border-2 rounded-lg transition-all font-semibold ${searchData.roomCount === count
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : 'border-gray-300 hover:border-green-500'
+                                    }`}
                             >
                                 {count === 'any' ? 'Любое' : `${count} ${getRoomWord(count)}`}
                             </button>
                         ))}
                     </div>
-                    <button
-                        onClick={() => setCurrentStep(3)}
-                        className="mt-6 text-blue-600 hover:text-blue-800"
-                    >
-                        Пропустить →
-                    </button>
+
+                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
+                    <div className="flex justify-between items-center">
+                        <button
+                            onClick={() => setCurrentStep(1)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Назад
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(3)}
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                        >
+                            Далее
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(3)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Пропустить
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -175,7 +194,7 @@ const SmartSearch = () => {
             {currentStep === 2.5 && searchData.propertyType === 'house' && (
                 <div>
                     <h3 className="text-xl font-bold mb-6 text-center">Параметры дома</h3>
-                    <div className="space-y-4">
+                    <div className="space-y-4 mb-8">
                         {/* Площадь */}
                         <div>
                             <label className="block text-sm font-medium mb-2">Примерная площадь дома (м²)</label>
@@ -197,8 +216,8 @@ const SmartSearch = () => {
                                         key={floors}
                                         onClick={() => handleHouseParamChange('houseFloors', floors)}
                                         className={`p-3 border-2 rounded-lg transition-all ${searchData.houseFloors === floors
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
                                         {floors} этаж{floors === '1' ? '' : 'а'}
@@ -218,8 +237,8 @@ const SmartSearch = () => {
                                     key={item.key}
                                     onClick={() => handleHouseAmenityToggle(item.key)}
                                     className={`p-3 border-2 rounded-lg transition-all ${searchData[item.key as keyof typeof searchData]
-                                            ? 'border-green-500 bg-green-50 text-green-700'
-                                            : 'border-gray-300 hover:border-green-500'
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : 'border-gray-300 hover:border-green-500'
                                         }`}
                                 >
                                     {item.label}
@@ -236,8 +255,8 @@ const SmartSearch = () => {
                                         key={spaces}
                                         onClick={() => handleHouseParamChange('parkingSpaces', spaces)}
                                         className={`p-3 border-2 rounded-lg transition-all ${searchData.parkingSpaces === spaces
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
                                         {spaces}
@@ -245,21 +264,28 @@ const SmartSearch = () => {
                                 ))}
                             </div>
                         </div>
+                    </div>
 
-                        <div className="flex gap-4 mt-6">
-                            <button
-                                onClick={() => setCurrentStep(1)}
-                                className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
-                            >
-                                Назад
-                            </button>
-                            <button
-                                onClick={() => setCurrentStep(3)}
-                                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                            >
-                                Продолжить
-                            </button>
-                        </div>
+                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
+                    <div className="flex justify-between items-center">
+                        <button
+                            onClick={() => setCurrentStep(1)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Назад
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(3)}
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                        >
+                            Далее
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(3)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Пропустить
+                        </button>
                     </div>
                 </div>
             )}
@@ -268,7 +294,7 @@ const SmartSearch = () => {
             {currentStep === 3 && (
                 <div>
                     <h3 className="text-xl font-bold mb-6 text-center">Ваш бюджет?</h3>
-                    <div className="space-y-4">
+                    <div className="space-y-4 mb-8">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">От (₽)</label>
@@ -311,21 +337,28 @@ const SmartSearch = () => {
                                 </button>
                             ))}
                         </div>
+                    </div>
 
-                        <div className="flex gap-4 mt-6">
-                            <button
-                                onClick={() => setCurrentStep(searchData.propertyType === 'house' ? 2.5 : 2)}
-                                className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
-                            >
-                                Назад
-                            </button>
-                            <button
-                                onClick={() => setCurrentStep(4)}
-                                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                            >
-                                Продолжить
-                            </button>
-                        </div>
+                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
+                    <div className="flex justify-between items-center">
+                        <button
+                            onClick={() => setCurrentStep(searchData.propertyType === 'house' ? 2.5 : 2)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Назад
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(4)}
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                        >
+                            Далее
+                        </button>
+                        <button
+                            onClick={() => setCurrentStep(4)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Пропустить
+                        </button>
                     </div>
                 </div>
             )}
@@ -336,7 +369,7 @@ const SmartSearch = () => {
                     <h3 className="text-xl font-bold mb-6 text-center">
                         {searchData.propertyType === 'house' ? 'Дополнительные удобства' : 'Что важно для вас?'}
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-4 mb-8">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {/* Разные опции для домов и квартир */}
                             {searchData.propertyType === 'house' ? (
@@ -349,8 +382,8 @@ const SmartSearch = () => {
                                         key={amenity}
                                         onClick={() => handleAmenityToggle(amenity)}
                                         className={`p-3 border-2 rounded-lg transition-all ${searchData.amenities.includes(amenity)
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
                                         {amenity}
@@ -366,8 +399,8 @@ const SmartSearch = () => {
                                         key={amenity}
                                         onClick={() => handleAmenityToggle(amenity)}
                                         className={`p-3 border-2 rounded-lg transition-all ${searchData.amenities.includes(amenity)
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
                                         {amenity}
@@ -375,21 +408,22 @@ const SmartSearch = () => {
                                 ))
                             )}
                         </div>
+                    </div>
 
-                        <div className="flex gap-4 mt-6">
-                            <button
-                                onClick={() => setCurrentStep(3)}
-                                className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
-                            >
-                                Назад
-                            </button>
-                            <button
-                                onClick={handleSearch}
-                                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                            >
-                                Найти жилье
-                            </button>
-                        </div>
+                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Найти жилье справа */}
+                    <div className="flex justify-between items-center">
+                        <button
+                            onClick={() => setCurrentStep(3)}
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            Назад
+                        </button>
+                        <button
+                            onClick={handleSearch}
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                        >
+                            Найти жилье
+                        </button>
                     </div>
                 </div>
             )}

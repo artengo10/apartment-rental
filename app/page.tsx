@@ -1,3 +1,4 @@
+// app/page.tsx
 import SmartSearch from '@/components/SmartSearch';
 import Link from 'next/link';
 
@@ -15,7 +16,11 @@ export default function Home() {
             </p>
           </Link>
 
-          <nav>
+          <nav className="flex gap-4">
+            {/* Добавлена кнопка Войти/Зарегистрироваться */}
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
+              Войти/Зарегистрироваться
+            </button>
             <button className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 rounded-md font-medium transition-colors text-sm sm:text-base border border-black">
               Добавить жилье
             </button>

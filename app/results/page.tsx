@@ -1,7 +1,8 @@
+// app/results/page.tsx
 import MapComponent from '@/components/MapComponent';
 import ApartmentList from '@/components/ApartmentList';
 import Link from 'next/link';
-import { apartments } from '@/types/apartment'; // Добавь этот импорт
+import { apartments } from '@/types/apartment';
 
 export default function ResultsPage() {
     return (
@@ -16,12 +17,10 @@ export default function ResultsPage() {
                     </Link>
 
                     <nav className="flex gap-4">
-                        <Link
-                            href="/"
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm"
-                        >
-                            Новый поиск
-                        </Link>
+                        {/* Добавлена кнопка Войти/Зарегистрироваться */}
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
+                            Войти/Зарегистрироваться
+                        </button>
                         <button className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 rounded-md font-medium transition-colors text-sm sm:text-base border border-black">
                             Добавить жилье
                         </button>
@@ -29,25 +28,31 @@ export default function ResultsPage() {
                 </div>
             </header>
 
-            <main className="flex-1 container mx-auto px-3 sm:px-6 py-6">
-                <div className="mb-6">
-                    {/* Заменил demoApartments на apartments */}
-                    <h2 className="text-2xl font-bold mb-2">Найдено {apartments.length} вариантов</h2>
-                    {/* Изменил текст на "в Нижнем Новгороде" */}
-                    <p className="text-gray-600">Жилье в Нижнем Новгороде по вашему запросу</p>
+            <main className="flex-1 container mx-auto px-3 sm:px-6 py-6 flex flex-col">
+                <div className="mb-6 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-2">Найдено {apartments.length} вариантов</h2>
+                        <p className="text-gray-600">Жилье в Нижнем Новгороде по вашему запросу</p>
+                    </div>
+
+                    {/* Кнопка Новый поиск перемещена сюда */}
+                    <Link
+                        href="/"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
+                    >
+                        Новый поиск
+                    </Link>
                 </div>
 
-                {/* Новый макет: 70% карта, 30% список */}
-                <div className="flex flex-col xl:flex-row gap-6 min-h-[600px]">
+                {/* Основной контент - занимает всё оставшееся пространство */}
+                <div className="flex flex-col xl:flex-row gap-6 flex-grow min-h-0">
                     {/* Карта - 70% ширины */}
-                    <div className="w-full xl:w-7/12">
-                        {/* Заменил demoApartments на apartments */}
+                    <div className="w-full xl:w-7/12 h-full">
                         <MapComponent apartments={apartments} />
                     </div>
 
-                    {/* Список похожих вариантов - 30% ширины */}
-                    <div className="w-full xl:w-5/12">
-                        {/* Заменил demoApartments на apartments */}
+                    {/* Список похожих вариантов - 30% ширины и занимает всю высоту */}
+                    <div className="w-full xl:w-5/12 h-full">
                         <ApartmentList apartments={apartments} />
                     </div>
                 </div>

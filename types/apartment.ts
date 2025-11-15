@@ -11,7 +11,13 @@ export interface Apartment {
   rooms?: number;
   area?: number;
   floor?: number;
+   originalPrice?: string; // Цена до скидки
+  photos?: string[]; // Массив URL фотографий
+  amenities?: string[]; // Удобства
+  hostName?: string; // Имя хозяина
+  hostRating?: number; // Рейтинг хозяина
 }
+
 
 // Центры районов Нижнего Новгорода
 const districtCenters = {
