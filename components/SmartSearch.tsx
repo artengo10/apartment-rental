@@ -75,6 +75,9 @@ const SmartSearch = () => {
 
     const handleSearch = () => {
         console.log('Search data:', searchData);
+
+        // Сохраняем критерии для страницы результатов
+        sessionStorage.setItem('searchCriteria', JSON.stringify(searchData));
         router.push('/results');
     };
 

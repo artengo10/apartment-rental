@@ -1,11 +1,10 @@
-// components/ApartmentList.tsx
 'use client';
-import { Apartment } from '../types/apartment';
+import { ScoredApartment } from '@/types/scoring';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ApartmentListProps {
-    apartments: Apartment[];
+    apartments: ScoredApartment[];
 }
 
 const ApartmentList = ({ apartments }: ApartmentListProps) => {
@@ -21,17 +20,35 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
             setIsMobile(mobile);
 
             if (mobile) {
-                setItemsPerPage(4); // Мобильные: 2 ряда по 2 карточки = 4
+                setItemsPerPage(4);
             } else {
-                setItemsPerPage(6); // ПК: 3 ряда по 2 колонки = 6
+                setItemsPerPage(6);
             }
         };
 
         updateLayout();
         window.addEventListener('resize', updateLayout);
-        
+
         return () => window.removeEventListener('resize', updateLayout);
     }, []);
+
+    // ВСЕ ХУКИ ДОЛЖНЫ БЫТЬ ВЫЗВАНЫ ДО ЛЮБЫХ УСЛОВИЙ
+
+    // Теперь можно проверять условия для рендеринга
+    if (apartments.length === 0) {
+        return (
+            <div className="border-2 border-black rounded-lg p-3 sm:p-4 bg-white h-full flex flex-col">
+                <div className="flex justify-between items-center mb-4 sm:mb-6 flex-shrink-0">
+                    <h3 className="text-lg sm:text-xl font-bold">Похожие варианты</h3>
+                </div>
+                <div className="flex-grow flex items-center justify-center">
+                    <p className="text-gray-500 text-center">
+                        Нет похожих вариантов, соответствующих вашему запросу
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     // Вычисляем индексы для текущей страницы
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -54,13 +71,13 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
         }
     };
 
-    const handleCall = (apartment: Apartment, e: React.MouseEvent) => {
+    const handleCall = (apartment: ScoredApartment, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${apartment.title}`);
     };
 
-    const handleDetails = (apartment: Apartment, e: React.MouseEvent) => {
+    const handleDetails = (apartment: ScoredApartment, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         router.push(`/apartment/${apartment.id}`);
@@ -80,9 +97,8 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                 </span>
             </div>
 
-            {/* СЕТКА КАРТОЧЕК - ОСНОВНОЕ ИЗМЕНЕНИЕ */}
+            {/* СЕТКА КАРТОЧЕК */}
             <div className="flex-grow mb-4 sm:mb-6 min-h-0">
-                {/* ИЗМЕНЕНИЕ: на всех устройствах 2 колонки */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 h-full">
                     {currentApartments.map((apartment) => (
                         <div
@@ -91,23 +107,43 @@ const ApartmentList = ({ apartments }: ApartmentListProps) => {
                             onClick={() => handleCardClick(apartment.id)}
                         >
                             <div className="p-2 sm:p-3 flex-1 min-h-0 flex flex-col">
-                                <h4 className="font-semibold text-blue-700 text-sm mb-1 sm:mb-2 leading-tight line-clamp-2 flex-shrink-0">{apartment.title}</h4>
-                                <p className="text-xs text-gray-600 mb-1 sm:mb-2 truncate flex-shrink-0" title={apartment.address}>{apartment.address}</p>
-                                <p className="text-xs text-gray-500 mb-2 sm:mb-3 line-clamp-2 flex-grow">{apartment.description}</p>
-                                <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0">
+                                <div className="flex justify-between items-start mb-1">
+                                    <h4 className="font-semibold text-blue-700 text-sm leading-tight line-clamp-2 flex-1">
+                                        {apartment.title}
+                                    </h4>
+                                    <div className="flex items-center gap-1 ml-2">
+                                        {apartment.isPromoted && (
+                                            <span className="text-yellow-500 text-xs">★</span>
+                                        )}
+                                        <span className={`px-1 py-0.5 rounded text-xs ${apartment.relevanceScore >= 7 ? 'bg-green-500 text-white' :
+                                                apartment.relevanceScore >= 4 ? 'bg-yellow-500 text-white' :
+                                                    'bg-gray-500 text-white'
+                                            }`}>
+                                            {apartment.relevanceScore}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs text-gray-600 mb-1 truncate" title={apartment.address}>
+                                    {apartment.address}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-2 line-clamp-2 flex-grow">
+                                    {apartment.description}
+                                </p>
+                                <div className="flex items-center justify-between mb-2 flex-shrink-0">
                                     <span className="font-bold text-green-600 text-sm">{apartment.price}</span>
                                     <div className="flex flex-col items-end gap-1">
                                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded truncate max-w-[80px]">
                                             {apartment.district}
                                         </span>
                                         <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                                            {apartment.type === 'apartment' ? 'Квартира' : apartment.type === 'house' ? 'Дом' : 'Студия'}
+                                            {apartment.type === 'apartment' ? 'Квартира' :
+                                                apartment.type === 'house' ? 'Дом' : 'Студия'}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Кнопки */}
                             <div className="flex border-t border-gray-200 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <button
                                     onClick={(e) => handleCall(apartment, e)}
