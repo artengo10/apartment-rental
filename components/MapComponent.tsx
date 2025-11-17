@@ -12,9 +12,11 @@ interface MapComponentProps {
 const MapComponent = ({ apartments }: MapComponentProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    let mapInstance: any = null;
 
     const initializeMap = async () => {
       try {
@@ -22,7 +24,10 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
 
         if (!isMounted || !mapRef.current || !window.ymaps) return;
 
-        const newMap = new window.ymaps.Map(mapRef.current, {
+        // Ждем немного чтобы контейнер получил правильные размеры
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        mapInstance = new window.ymaps.Map(mapRef.current, {
           center: [56.3287, 43.8547],
           zoom: 13,
           controls: ['zoomControl', 'typeSelector', 'fullscreenControl', 'searchControl']
@@ -30,7 +35,6 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
 
         // Функция для создания SVG иконок
         const createCustomIcon = (type: string) => {
-          // Улучшенная иконка квартиры (симметричная)
           const apartmentIconSvg = `
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="3" y="3" width="18" height="18" rx="1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -65,7 +69,6 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
               iconSvg = apartmentIconSvg;
           }
 
-          // Создаем увеличенную иконку с цветным фоном
           const coloredSvg = `
             <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
               <circle cx="22" cy="22" r="20" fill="${getColorByType(type)}" stroke="white" stroke-width="2"/>
@@ -80,9 +83,9 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
 
         const getColorByType = (type: string) => {
           switch (type) {
-            case 'apartment': return '#3B82F6'; // Синий
-            case 'house': return '#10B981'; // Зеленый
-            case 'studio': return '#9333EA'; // Фиолетовый
+            case 'apartment': return '#3B82F6';
+            case 'house': return '#10B981';
+            case 'studio': return '#9333EA';
             default: return '#3B82F6';
           }
         };
@@ -137,11 +140,19 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
             }
           );
 
-          newMap.geoObjects.add(placemark);
+          mapInstance.geoObjects.add(placemark);
         });
 
         if (isMounted) {
-          setMap(newMap);
+          setMap(mapInstance);
+          setIsMapReady(true);
+
+          // Принудительно обновляем размер карты после загрузки
+          setTimeout(() => {
+            if (mapInstance && mapRef.current) {
+              mapInstance.container.fitToViewport();
+            }
+          }, 300);
         }
       } catch (error) {
         console.error('Error loading Yandex Maps:', error);
@@ -152,21 +163,36 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
 
     return () => {
       isMounted = false;
-      if (map) {
-        map.destroy();
+      if (mapInstance) {
+        mapInstance.destroy();
       }
     };
   }, [apartments]);
 
+  // Обновляем карту при изменении размера окна
+  useEffect(() => {
+    const handleResize = () => {
+      if (map && isMapReady) {
+        setTimeout(() => {
+          map.container.fitToViewport();
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map, isMapReady]);
+
   return (
     <div className="w-full h-full">
-      {/* Легенда - горизонтальная ТОЛЬКО на мобильных, на ПК оставляем как было */}
+      {/* Легенда */}
       <div className="bg-white border-2 border-black rounded-lg p-4 mb-4 shadow-sm">
         <h3 className="text-lg font-semibold mb-3 text-center md:text-left">Обозначения на карте:</h3>
 
-        {/* На мобильных - горизонтально, на ПК - вертикально как было */}
         <div className="md:hidden flex flex-row justify-between items-center gap-2">
-          {/* Мобильная версия - горизонтально */}
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Building className="w-3 h-3 text-white" />
@@ -189,7 +215,6 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
           </div>
         </div>
 
-        {/* Десктоп версия - оставляем как было */}
         <div className="hidden md:grid grid-cols-3 gap-4">
           <div className="flex items-center space-x-3 p-2 bg-blue-50 rounded-lg">
             <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
@@ -227,10 +252,21 @@ const MapComponent = ({ apartments }: MapComponentProps) => {
         </p>
       </div>
 
+      {/* Контейнер карты с минимальной высотой */}
       <div
         ref={mapRef}
-        className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-lg border-2 border-black shadow-sm"
-      />
+        className={`w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-lg border-2 border-black shadow-sm ${!isMapReady ? 'bg-gray-100 animate-pulse' : ''
+          }`}
+      >
+        {!isMapReady && (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Загружаем карту...</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

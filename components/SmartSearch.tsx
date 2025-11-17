@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 type PropertyType = 'apartment' | 'house' | 'studio' | 'all';
 type RoomCount = '1' | '2' | '3' | '4+' | 'any';
 
-// Начальное состояние вынесено в константу
 const initialSearchData = {
     propertyType: '' as PropertyType,
     roomCount: '' as RoomCount,
@@ -36,9 +35,22 @@ const SmartSearch = () => {
         setSearchData(initialSearchData);
     }, [pathname]);
 
+    // ФУНКЦИЯ ДЛЯ РАСЧЕТА ПРОГРЕССА
+    const calculateProgress = () => {
+        const totalSteps = 4;
+
+        // Для студии показываем 66% вместо 75%
+        if (searchData.propertyType === 'studio' && currentStep === 3) {
+            return 66;
+        }
+
+        return (currentStep / totalSteps) * 100;
+    };
+
+    const progressPercentage = calculateProgress();
+
     const handlePropertyTypeSelect = (type: PropertyType) => {
         if (type === 'all') {
-            // Для "Все варианты" сразу сохраняем и переходим
             const allCriteria = {
                 ...initialSearchData,
                 propertyType: 'all'
@@ -53,7 +65,7 @@ const SmartSearch = () => {
         setSearchData(prev => ({ ...prev, propertyType: type }));
 
         if (type === 'studio') {
-            setCurrentStep(3);
+            setCurrentStep(3); // Пропускаем шаг с комнатами для студии
         } else if (type === 'house') {
             setCurrentStep(2.5);
         } else {
@@ -98,7 +110,23 @@ const SmartSearch = () => {
         router.push('/results');
     };
 
-    const progressPercentage = (currentStep / 4) * 100;
+    // ФУНКЦИЯ ДЛЯ КНОПКИ НАЗАД - ИСПРАВЛЯЕМ БАГ
+    const handleBack = () => {
+        if (currentStep === 3 && searchData.propertyType === 'studio') {
+            // Для студии из шага 3 (бюджет) возвращаемся к выбору типа жилья
+            setCurrentStep(1);
+        } else if (currentStep === 3 && searchData.propertyType === 'house') {
+            setCurrentStep(2.5);
+        } else if (currentStep === 3 && searchData.propertyType === 'apartment') {
+            setCurrentStep(2);
+        } else if (currentStep === 4) {
+            setCurrentStep(3);
+        } else if (currentStep === 2.5) {
+            setCurrentStep(1);
+        } else if (currentStep === 2) {
+            setCurrentStep(1);
+        }
+    };
 
     return (
         <div className="max-w-2xl mx-auto bg-white rounded-lg border-2 border-black p-6 sm:p-8 shadow-lg">
@@ -167,7 +195,6 @@ const SmartSearch = () => {
                 </div>
             )}
 
-            {/* Остальные шаги остаются без изменений */}
             {/* Шаг 2: Количество комнат (только для квартир) */}
             {currentStep === 2 && searchData.propertyType === 'apartment' && (
                 <div className="text-center">
@@ -187,22 +214,23 @@ const SmartSearch = () => {
                         ))}
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
+                    <div className="flex justify-center items-center gap-4">
                         <button
-                            onClick={() => setCurrentStep(1)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            onClick={handleBack}
+                            className="bg-gray-500 text-white px-3 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Назад
                         </button>
                         <button
                             onClick={() => setCurrentStep(3)}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                            className="bg-green-600 text-white px-15 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
                         >
                             Далее
                         </button>
                         <button
                             onClick={() => setCurrentStep(3)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            className="bg-gray-500 text-white px-3 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Пропустить
                         </button>
@@ -282,22 +310,23 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
+                    <div className="flex justify-center items-center gap-4">
                         <button
-                            onClick={() => setCurrentStep(1)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            onClick={handleBack}
+                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Назад
                         </button>
                         <button
                             onClick={() => setCurrentStep(3)}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
                         >
                             Далее
                         </button>
                         <button
                             onClick={() => setCurrentStep(3)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Пропустить
                         </button>
@@ -353,22 +382,23 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
+                    <div className="flex justify-center items-center gap-4">
                         <button
-                            onClick={() => setCurrentStep(searchData.propertyType === 'house' ? 2.5 : 2)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            onClick={handleBack}
+                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Назад
                         </button>
                         <button
                             onClick={() => setCurrentStep(4)}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
                         >
                             Далее
                         </button>
                         <button
                             onClick={() => setCurrentStep(4)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Пропустить
                         </button>
@@ -420,16 +450,17 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
+                    <div className="flex justify-center items-center gap-4">
                         <button
-                            onClick={() => setCurrentStep(3)}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm"
+                            onClick={handleBack}
+                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
                         >
                             Назад
                         </button>
                         <button
                             onClick={handleSearch}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
                         >
                             Найти жилье
                         </button>
