@@ -1,15 +1,25 @@
 // app/page.tsx
+'use client'; // Добавляем эту директиву
+
 import SmartSearch from '@/components/SmartSearch';
 import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Хедер */}
       <header className="bg-primary text-primary-foreground px-4 py-3 sm:px-6 sm:py-4 shadow-sm border-b border-black">
         <div className="container mx-auto flex justify-between items-center">
-          {/* Логотип как ссылка */}
-          <Link href="/" className="text-left hover:opacity-80 transition-opacity">
+          {/* Обновляем ссылку логотипа для сброса состояния */}
+          <Link
+            href="/"
+            className="text-left hover:opacity-80 transition-opacity"
+            onClick={() => {
+              // Принудительно обновляем страницу при клике на логотип
+              if (window.location.pathname === '/') {
+                window.location.reload();
+              }
+            }}
+          >
             <h1 className="text-xl sm:text-2xl font-bold">СъёмБронь</h1>
             <p className="text-xs sm:text-sm text-primary-foreground/80 hidden sm:block">
               Умный поиск жилья в Нижнем Новгороде
@@ -17,7 +27,6 @@ export default function Home() {
           </Link>
 
           <nav className="flex gap-4">
-            {/* Добавлена кнопка Войти/Зарегистрироваться */}
             <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
               Войти/Зарегистрироваться
             </button>

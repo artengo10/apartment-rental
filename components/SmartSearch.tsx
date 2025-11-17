@@ -1,38 +1,58 @@
 // components/SmartSearch.tsx
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 type PropertyType = 'apartment' | 'house' | 'studio' | 'all';
 type RoomCount = '1' | '2' | '3' | '4+' | 'any';
 
+// Начальное состояние вынесено в константу
+const initialSearchData = {
+    propertyType: '' as PropertyType,
+    roomCount: '' as RoomCount,
+    priceRange: { min: '', max: '' },
+    district: 'sormovo',
+    amenities: [] as string[],
+    duration: '1-3',
+    houseArea: '',
+    houseFloors: '1',
+    hasGarden: false,
+    hasGarage: false,
+    hasSauna: false,
+    parkingSpaces: '1',
+};
+
 const SmartSearch = () => {
     const router = useRouter();
+    const pathname = usePathname();
     const [currentStep, setCurrentStep] = useState(1);
-    const [searchData, setSearchData] = useState({
-        propertyType: '' as PropertyType,
-        roomCount: '' as RoomCount,
-        priceRange: { min: '', max: '' },
-        district: 'sormovo',
-        amenities: [] as string[],
-        duration: '1-3',
-        // Поля для домов
-        houseArea: '',
-        houseFloors: '1',
-        hasGarden: false,
-        hasGarage: false,
-        hasSauna: false,
-        parkingSpaces: '1',
-    });
+    const [searchData, setSearchData] = useState(initialSearchData);
 
     const totalApartments = 100;
 
+    // СБРОС СОСТОЯНИЯ ПРИ ПЕРЕХОДЕ НА ГЛАВНУЮ
+    useEffect(() => {
+        setCurrentStep(1);
+        setSearchData(initialSearchData);
+    }, [pathname]);
+
     const handlePropertyTypeSelect = (type: PropertyType) => {
+        if (type === 'all') {
+            // Для "Все варианты" сразу сохраняем и переходим
+            const allCriteria = {
+                ...initialSearchData,
+                propertyType: 'all'
+            };
+
+            console.log('Searching all properties with criteria:', allCriteria);
+            sessionStorage.setItem('searchCriteria', JSON.stringify(allCriteria));
+            router.push('/results');
+            return;
+        }
+
         setSearchData(prev => ({ ...prev, propertyType: type }));
 
-        if (type === 'all') {
-            router.push('/results');
-        } else if (type === 'studio') {
+        if (type === 'studio') {
             setCurrentStep(3);
         } else if (type === 'house') {
             setCurrentStep(2.5);
@@ -43,7 +63,6 @@ const SmartSearch = () => {
 
     const handleRoomCountSelect = (count: RoomCount) => {
         setSearchData(prev => ({ ...prev, roomCount: count }));
-        // Убрали автоматический переход
     };
 
     const handleHouseParamChange = (field: string, value: any) => {
@@ -75,8 +94,6 @@ const SmartSearch = () => {
 
     const handleSearch = () => {
         console.log('Search data:', searchData);
-
-        // Сохраняем критерии для страницы результатов
         sessionStorage.setItem('searchCriteria', JSON.stringify(searchData));
         router.push('/results');
     };
@@ -143,13 +160,14 @@ const SmartSearch = () => {
                             className="p-6 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center"
                         >
                             <div className="text-3xl mb-3">🔍</div>
-                            <span className="font-semibold">Все квартиры</span>
+                            <span className="font-semibold">Все варианты</span>
                             <span className="text-sm text-gray-600 mt-1">Показать все варианты</span>
                         </button>
                     </div>
                 </div>
             )}
 
+            {/* Остальные шаги остаются без изменений */}
             {/* Шаг 2: Количество комнат (только для квартир) */}
             {currentStep === 2 && searchData.propertyType === 'apartment' && (
                 <div className="text-center">
@@ -160,8 +178,8 @@ const SmartSearch = () => {
                                 key={count}
                                 onClick={() => handleRoomCountSelect(count)}
                                 className={`p-4 border-2 rounded-lg transition-all font-semibold ${searchData.roomCount === count
-                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                        : 'border-gray-300 hover:border-green-500'
+                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                    : 'border-gray-300 hover:border-green-500'
                                     }`}
                             >
                                 {count === 'any' ? 'Любое' : `${count} ${getRoomWord(count)}`}
@@ -169,7 +187,6 @@ const SmartSearch = () => {
                         ))}
                     </div>
 
-                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => setCurrentStep(1)}
@@ -198,7 +215,6 @@ const SmartSearch = () => {
                 <div>
                     <h3 className="text-xl font-bold mb-6 text-center">Параметры дома</h3>
                     <div className="space-y-4 mb-8">
-                        {/* Площадь */}
                         <div>
                             <label className="block text-sm font-medium mb-2">Примерная площадь дома (м²)</label>
                             <input
@@ -210,7 +226,6 @@ const SmartSearch = () => {
                             />
                         </div>
 
-                        {/* Этажность */}
                         <div>
                             <label className="block text-sm font-medium mb-2">Этажность</label>
                             <div className="grid grid-cols-3 gap-2">
@@ -229,7 +244,6 @@ const SmartSearch = () => {
                             </div>
                         </div>
 
-                        {/* Дополнительные параметры */}
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 { key: 'hasGarden', label: '🏡 Участок' },
@@ -249,7 +263,6 @@ const SmartSearch = () => {
                             ))}
                         </div>
 
-                        {/* Парковочные места */}
                         <div>
                             <label className="block text-sm font-medium mb-2">Парковочные места</label>
                             <div className="grid grid-cols-4 gap-2">
@@ -269,7 +282,6 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => setCurrentStep(1)}
@@ -321,7 +333,6 @@ const SmartSearch = () => {
                             </div>
                         </div>
 
-                        {/* Быстрый выбор цен */}
                         <div className="grid grid-cols-3 gap-2">
                             {[
                                 { label: 'Эконом', min: '500', max: '1500' },
@@ -342,7 +353,6 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Далее по центру, маленькая Пропустить справа */}
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => setCurrentStep(searchData.propertyType === 'house' ? 2.5 : 2)}
@@ -374,9 +384,7 @@ const SmartSearch = () => {
                     </h3>
                     <div className="space-y-4 mb-8">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {/* Разные опции для домов и квартир */}
                             {searchData.propertyType === 'house' ? (
-                                // Опции для домов
                                 [
                                     'Бассейн', 'Камин', 'Терраса',
                                     'Охрана', 'Детская площадка', 'Спортзал'
@@ -393,7 +401,6 @@ const SmartSearch = () => {
                                     </button>
                                 ))
                             ) : (
-                                // Опции для квартир и студий
                                 [
                                     'Wi-Fi', 'Кухня', 'TV', 'Кондиционер',
                                     'Стиральная машина', 'Парковка', 'Лифт', 'Балкон'
@@ -413,7 +420,6 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    {/* НОВЫЕ КНОПКИ: маленькая Назад слева, большая Найти жилье справа */}
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => setCurrentStep(3)}
@@ -434,7 +440,6 @@ const SmartSearch = () => {
     );
 };
 
-// Исправленная функция для склонения слова "комната"
 const getRoomWord = (count: RoomCount): string => {
     if (count === '1') return 'комната';
     if (count === '2' || count === '3') return 'комнаты';

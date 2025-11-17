@@ -21,10 +21,10 @@ export default function ResultsPage() {
             const sorted = sortApartmentsByRelevance(apartments, criteria);
             setScoredApartments(sorted);
         } else {
-            // Если нет критериев, показываем ВСЕ варианты как есть
+            // Если нет критериев, показываем все варианты
             setScoredApartments(apartments.map(apt => ({
                 ...apt,
-                relevanceScore: 1, // Устанавливаем 1 балл чтобы показать
+                relevanceScore: 1,
                 isPromoted: false
             })));
         }
@@ -82,12 +82,12 @@ export default function ResultsPage() {
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-6 flex-grow min-h-0">
-                    {/* Карта - передаем ТОЛЬКО релевантные варианты */}
+                    {/* Карта */}
                     <div className="w-full xl:w-7/12 h-full">
                         <MapComponent apartments={relevantApartments} />
                     </div>
 
-                    {/* Список похожих вариантов - передаем ТОЛЬКО релевантные варианты */}
+                    {/* Список похожих вариантов */}
                     <div className="w-full xl:w-5/12 h-full">
                         <ApartmentList apartments={similarApartments} />
                     </div>

@@ -6,28 +6,45 @@ export const calculateRelevanceScore = (
   criteria: SearchCriteria
 ): ScoredApartment => {
   let score = 0;
+  const maxScore = 10;
 
-  // 1. ЖЕСТКИЙ КРИТЕРИЙ: тип жилья (4 балла)
+  // 1. ТИП ЖИЛЬЯ (3 балла) - жесткий критерий
   if (
     criteria.propertyType === "all" ||
     apartment.type === criteria.propertyType
   ) {
-    score += 4;
+    score += 3;
   } else {
     // Если тип не совпадает - сразу 0 баллов
     return { ...apartment, relevanceScore: 0 };
   }
 
-  // 2. КРИТЕРИЙ: комнатность/этажность (3 балла)
-  if (apartment.type === "house" && criteria.houseFloors) {
-    const desiredFloors = parseInt(criteria.houseFloors);
-    const actualFloors = apartment.floor || 1;
+  // 2. ЦЕНА (3 балла) - очень важно
+  const price = parseInt(apartment.price.replace(/[^\d]/g, ""));
+  const minPrice = parseInt(criteria.priceRange.min) || 0;
+  const maxPrice = parseInt(criteria.priceRange.max) || 10000;
 
-    if (actualFloors === desiredFloors) {
+  if (minPrice > 0 && maxPrice > 0) {
+    if (price >= minPrice && price <= maxPrice) {
       score += 3;
-    } else if (Math.abs(actualFloors - desiredFloors) === 1) {
-      score += 1;
+    } else if (price >= minPrice * 0.8 && price <= maxPrice * 1.2) {
+      score += 1; // Частичное совпадение
     }
+  }
+
+  // 3. РАЙОН (2 балла)
+  if (
+    apartment.district.toLowerCase().includes(criteria.district.toLowerCase())
+  ) {
+    score += 2;
+  }
+
+  // 4. КОМНАТЫ/ПЛОЩАДЬ (2 балла) - только если тип конкретный и указаны предпочтения
+  if (apartment.type === "house" && criteria.houseArea && apartment.area) {
+    const desiredArea = parseInt(criteria.houseArea);
+    const areaDiff = Math.abs(apartment.area - desiredArea) / desiredArea;
+    if (areaDiff <= 0.2) score += 2;
+    else if (areaDiff <= 0.4) score += 1;
   } else if (
     (apartment.type === "apartment" || apartment.type === "studio") &&
     criteria.roomCount &&
@@ -36,38 +53,13 @@ export const calculateRelevanceScore = (
     const desiredRooms =
       criteria.roomCount === "4+" ? 4 : parseInt(criteria.roomCount);
     const actualRooms = apartment.rooms || 1;
-
-    if (actualRooms === desiredRooms) {
-      score += 3;
-    }
-  }
-
-  // 3. Площадь (2 балла)
-  if (criteria.houseArea && apartment.area) {
-    const desiredArea = parseInt(criteria.houseArea);
-    const areaDiff = Math.abs(apartment.area - desiredArea) / desiredArea;
-
-    if (areaDiff <= 0.1) {
-      score += 2;
-    } else if (areaDiff <= 0.2) {
-      score += 1;
-    }
-  }
-
-  // 4. Удобства (1 балл)
-  if (criteria.amenities.length > 0 && apartment.amenities) {
-    const matchedAmenities = criteria.amenities.filter((amenity) =>
-      apartment.amenities!.includes(amenity)
-    ).length;
-
-    const amenityRatio = matchedAmenities / criteria.amenities.length;
-    score += amenityRatio;
+    if (actualRooms === desiredRooms) score += 2;
   }
 
   return {
     ...apartment,
-    relevanceScore: Math.min(10, score),
-    isPromoted: Math.random() > 0.8,
+    relevanceScore: Math.min(maxScore, score),
+    isPromoted: score >= 7 && Math.random() > 0.7,
   };
 };
 
