@@ -26,20 +26,35 @@ const SmartSearch = () => {
     const pathname = usePathname();
     const [currentStep, setCurrentStep] = useState(1);
     const [searchData, setSearchData] = useState(initialSearchData);
+    const [isContinueSearch, setIsContinueSearch] = useState(false);
 
     const totalApartments = 100;
 
-    // СБРОС СОСТОЯНИЯ ПРИ ПЕРЕХОДЕ НА ГЛАВНУЮ
+    // ПРОВЕРКА НА ПРОДОЛЖЕНИЕ РЕДАКТИРОВАНИЯ ПРИ ЗАГРУЗКЕ
     useEffect(() => {
-        setCurrentStep(1);
-        setSearchData(initialSearchData);
-    }, [pathname]);
+        const continueSearchData = sessionStorage.getItem('continueSearchData');
+        console.log('Checking continue search data:', continueSearchData);
 
-    // ФУНКЦИЯ ДЛЯ РАСЧЕТА ПРОГРЕССА
+        if (continueSearchData) {
+            try {
+                const { searchData: savedData, currentStep: savedStep } = JSON.parse(continueSearchData);
+                console.log('Loaded continue search:', { savedData, savedStep });
+
+                setSearchData(savedData);
+                setCurrentStep(savedStep);
+                setIsContinueSearch(true);
+
+                // Очищаем сразу после использования
+                sessionStorage.removeItem('continueSearchData');
+            } catch (error) {
+                console.error('Error parsing continue search data:', error);
+            }
+        }
+    }, []); // Убираем зависимость от pathname, чтобы срабатывало только при монтировании
+
     const calculateProgress = () => {
         const totalSteps = 4;
 
-        // Для студии показываем 66% вместо 75%
         if (searchData.propertyType === 'studio' && currentStep === 3) {
             return 66;
         }
@@ -56,16 +71,16 @@ const SmartSearch = () => {
                 propertyType: 'all'
             };
 
-            console.log('Searching all properties with criteria:', allCriteria);
             sessionStorage.setItem('searchCriteria', JSON.stringify(allCriteria));
             router.push('/results');
             return;
         }
 
         setSearchData(prev => ({ ...prev, propertyType: type }));
+        setIsContinueSearch(false);
 
         if (type === 'studio') {
-            setCurrentStep(3); // Пропускаем шаг с комнатами для студии
+            setCurrentStep(3);
         } else if (type === 'house') {
             setCurrentStep(2.5);
         } else {
@@ -105,16 +120,15 @@ const SmartSearch = () => {
     };
 
     const handleSearch = () => {
-        console.log('Search data:', searchData);
+        console.log('Final search data:', searchData);
         sessionStorage.setItem('searchCriteria', JSON.stringify(searchData));
         router.push('/results');
     };
 
-    // ФУНКЦИЯ ДЛЯ КНОПКИ НАЗАД - ИСПРАВЛЯЕМ БАГ
     const handleBack = () => {
         if (currentStep === 3 && searchData.propertyType === 'studio') {
-            // Для студии из шага 3 (бюджет) возвращаемся к выбору типа жилья
             setCurrentStep(1);
+            setIsContinueSearch(false);
         } else if (currentStep === 3 && searchData.propertyType === 'house') {
             setCurrentStep(2.5);
         } else if (currentStep === 3 && searchData.propertyType === 'apartment') {
@@ -123,9 +137,19 @@ const SmartSearch = () => {
             setCurrentStep(3);
         } else if (currentStep === 2.5) {
             setCurrentStep(1);
+            setIsContinueSearch(false);
         } else if (currentStep === 2) {
             setCurrentStep(1);
+            setIsContinueSearch(false);
         }
+    };
+
+    // Функция для сброса к новому поиску
+    const handleNewSearch = () => {
+        setCurrentStep(1);
+        setSearchData(initialSearchData);
+        setIsContinueSearch(false);
+        sessionStorage.removeItem('continueSearchData');
     };
 
     return (
@@ -135,6 +159,11 @@ const SmartSearch = () => {
                 <p className="text-blue-800 font-medium">
                     🏠 Доступно {totalApartments.toLocaleString()} вариантов жилья в Нижнем Новгороде
                 </p>
+                {isContinueSearch && (
+                    <p className="text-green-600 font-medium mt-2">
+                        ✨ Продолжаете редактирование поиска
+                    </p>
+                )}
             </div>
 
             {/* Прогресс-бар */}
@@ -151,8 +180,8 @@ const SmartSearch = () => {
                 </div>
             </div>
 
-            {/* Шаг 1: Выбор типа жилья */}
-            {currentStep === 1 && (
+            {/* Шаг 1: Выбор типа жилья (показываем только если не продолжаем редактирование) */}
+            {currentStep === 1 && !isContinueSearch && (
                 <div className="text-center">
                     <h3 className="text-xl font-bold mb-6">Что вы ищете?</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -196,215 +225,228 @@ const SmartSearch = () => {
             )}
 
             {/* Шаг 2: Количество комнат (только для квартир) */}
-            {currentStep === 2 && searchData.propertyType === 'apartment' && (
-                <div className="text-center">
-                    <h3 className="text-xl font-bold mb-6">Сколько комнат нужно?</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
-                        {(['1', '2', '3', '4+', 'any'] as RoomCount[]).map((count) => (
-                            <button
-                                key={count}
-                                onClick={() => handleRoomCountSelect(count)}
-                                className={`p-4 border-2 rounded-lg transition-all font-semibold ${searchData.roomCount === count
-                                    ? 'border-green-500 bg-green-50 text-green-700'
-                                    : 'border-gray-300 hover:border-green-500'
-                                    }`}
-                            >
-                                {count === 'any' ? 'Любое' : `${count} ${getRoomWord(count)}`}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
-                    <div className="flex justify-center items-center gap-4">
-                        <button
-                            onClick={handleBack}
-                            className="bg-gray-500 text-white px-3 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Назад
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(3)}
-                            className="bg-green-600 text-white px-15 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
-                        >
-                            Далее
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(3)}
-                            className="bg-gray-500 text-white px-3 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Пропустить
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Шаг 2.5: Параметры дома */}
-            {currentStep === 2.5 && searchData.propertyType === 'house' && (
-                <div>
-                    <h3 className="text-xl font-bold mb-6 text-center">Параметры дома</h3>
-                    <div className="space-y-4 mb-8">
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Примерная площадь дома (м²)</label>
-                            <input
-                                type="number"
-                                value={searchData.houseArea}
-                                onChange={(e) => handleHouseParamChange('houseArea', e.target.value)}
-                                placeholder="Например: 120"
-                                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Этажность</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {['1', '2', '3+'].map(floors => (
-                                    <button
-                                        key={floors}
-                                        onClick={() => handleHouseParamChange('houseFloors', floors)}
-                                        className={`p-3 border-2 rounded-lg transition-all ${searchData.houseFloors === floors
-                                            ? 'border-green-500 bg-green-50 text-green-700'
-                                            : 'border-gray-300 hover:border-green-500'
-                                            }`}
-                                    >
-                                        {floors} этаж{floors === '1' ? '' : 'а'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { key: 'hasGarden', label: '🏡 Участок' },
-                                { key: 'hasGarage', label: '🚗 Гараж' },
-                                { key: 'hasSauna', label: '🧖 Баня/Сауна' },
-                            ].map((item) => (
+            {((currentStep === 2 && searchData.propertyType === 'apartment') ||
+                (isContinueSearch && searchData.propertyType === 'apartment' && currentStep === 2)) && (
+                    <div className="text-center">
+                        <h3 className="text-xl font-bold mb-6">Сколько комнат нужно?</h3>
+                        <p className="text-gray-600 mb-4">Вы выбрали: <span className="font-semibold">Квартира</span></p>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+                            {(['1', '2', '3', '4+', 'any'] as RoomCount[]).map((count) => (
                                 <button
-                                    key={item.key}
-                                    onClick={() => handleHouseAmenityToggle(item.key)}
-                                    className={`p-3 border-2 rounded-lg transition-all ${searchData[item.key as keyof typeof searchData]
+                                    key={count}
+                                    onClick={() => handleRoomCountSelect(count)}
+                                    className={`p-4 border-2 rounded-lg transition-all font-semibold ${searchData.roomCount === count
                                         ? 'border-green-500 bg-green-50 text-green-700'
                                         : 'border-gray-300 hover:border-green-500'
                                         }`}
                                 >
-                                    {item.label}
+                                    {count === 'any' ? 'Любое' : `${count} ${getRoomWord(count)}`}
                                 </button>
                             ))}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Парковочные места</label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {['1', '2', '3', '4+'].map(spaces => (
+                        <div className="flex justify-center items-center gap-4">
+                            <button
+                                onClick={isContinueSearch ? handleNewSearch : handleBack}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                {isContinueSearch ? 'Новый поиск' : 'Назад'}
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(3)}
+                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                            >
+                                Далее
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(3)}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                Пропустить
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+            {/* Шаг 2.5: Параметры дома */}
+            {((currentStep === 2.5 && searchData.propertyType === 'house') ||
+                (isContinueSearch && searchData.propertyType === 'house' && currentStep === 2.5)) && (
+                    <div>
+                        <h3 className="text-xl font-bold mb-6 text-center">Параметры дома</h3>
+                        <p className="text-gray-600 mb-4 text-center">Вы выбрали: <span className="font-semibold">Дом</span></p>
+                        <div className="space-y-4 mb-8">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Примерная площадь дома (м²)</label>
+                                <input
+                                    type="number"
+                                    value={searchData.houseArea}
+                                    onChange={(e) => handleHouseParamChange('houseArea', e.target.value)}
+                                    placeholder="Например: 120"
+                                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Этажность</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['1', '2', '3+'].map(floors => (
+                                        <button
+                                            key={floors}
+                                            onClick={() => handleHouseParamChange('houseFloors', floors)}
+                                            className={`p-3 border-2 rounded-lg transition-all ${searchData.houseFloors === floors
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-gray-300 hover:border-green-500'
+                                                }`}
+                                        >
+                                            {floors} этаж{floors === '1' ? '' : 'а'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { key: 'hasGarden', label: '🏡 Участок' },
+                                    { key: 'hasGarage', label: '🚗 Гараж' },
+                                    { key: 'hasSauna', label: '🧖 Баня/Сауна' },
+                                ].map((item) => (
                                     <button
-                                        key={spaces}
-                                        onClick={() => handleHouseParamChange('parkingSpaces', spaces)}
-                                        className={`p-3 border-2 rounded-lg transition-all ${searchData.parkingSpaces === spaces
+                                        key={item.key}
+                                        onClick={() => handleHouseAmenityToggle(item.key)}
+                                        className={`p-3 border-2 rounded-lg transition-all ${searchData[item.key as keyof typeof searchData]
                                             ? 'border-green-500 bg-green-50 text-green-700'
                                             : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
-                                        {spaces}
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Парковочные места</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {['1', '2', '3', '4+'].map(spaces => (
+                                        <button
+                                            key={spaces}
+                                            onClick={() => handleHouseParamChange('parkingSpaces', spaces)}
+                                            className={`p-3 border-2 rounded-lg transition-all ${searchData.parkingSpaces === spaces
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-gray-300 hover:border-green-500'
+                                                }`}
+                                        >
+                                            {spaces}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center items-center gap-4">
+                            <button
+                                onClick={isContinueSearch ? handleNewSearch : handleBack}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                {isContinueSearch ? 'Новый поиск' : 'Назад'}
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(3)}
+                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                            >
+                                Далее
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(3)}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                Пропустить
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+            {/* Шаг 3: Бюджет */}
+            {((currentStep === 3) ||
+                (isContinueSearch && currentStep === 3)) && (
+                    <div>
+                        <h3 className="text-xl font-bold mb-6 text-center">Ваш бюджет?</h3>
+                        {isContinueSearch && (
+                            <p className="text-gray-600 mb-4 text-center">
+                                Вы выбрали: <span className="font-semibold">
+                                    {searchData.propertyType === 'apartment' ? 'Квартира' :
+                                        searchData.propertyType === 'house' ? 'Дом' : 'Студия'}
+                                </span>
+                                {searchData.propertyType === 'apartment' && searchData.roomCount && (
+                                    <>, {searchData.roomCount === 'any' ? 'любые комнаты' : `${searchData.roomCount} ${getRoomWord(searchData.roomCount)}`}</>
+                                )}
+                            </p>
+                        )}
+                        <div className="space-y-4 mb-8">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">От (₽)</label>
+                                    <input
+                                        type="number"
+                                        value={searchData.priceRange.min}
+                                        onChange={(e) => handlePriceChange('min', e.target.value)}
+                                        placeholder="1000"
+                                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">До (₽)</label>
+                                    <input
+                                        type="number"
+                                        value={searchData.priceRange.max}
+                                        onChange={(e) => handlePriceChange('max', e.target.value)}
+                                        placeholder="5000"
+                                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: 'Эконом', min: '500', max: '1500' },
+                                    { label: 'Стандарт', min: '1500', max: '3000' },
+                                    { label: 'Премиум', min: '3000', max: '10000' }
+                                ].map((option) => (
+                                    <button
+                                        key={option.label}
+                                        onClick={() => {
+                                            handlePriceChange('min', option.min);
+                                            handlePriceChange('max', option.max);
+                                        }}
+                                        className="p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 text-sm"
+                                    >
+                                        {option.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
-                    <div className="flex justify-center items-center gap-4">
-                        <button
-                            onClick={handleBack}
-                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Назад
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(3)}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
-                        >
-                            Далее
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(3)}
-                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Пропустить
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Шаг 3: Бюджет */}
-            {currentStep === 3 && (
-                <div>
-                    <h3 className="text-xl font-bold mb-6 text-center">Ваш бюджет?</h3>
-                    <div className="space-y-4 mb-8">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">От (₽)</label>
-                                <input
-                                    type="number"
-                                    value={searchData.priceRange.min}
-                                    onChange={(e) => handlePriceChange('min', e.target.value)}
-                                    placeholder="1000"
-                                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-2">До (₽)</label>
-                                <input
-                                    type="number"
-                                    value={searchData.priceRange.max}
-                                    onChange={(e) => handlePriceChange('max', e.target.value)}
-                                    placeholder="5000"
-                                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                            {[
-                                { label: 'Эконом', min: '500', max: '1500' },
-                                { label: 'Стандарт', min: '1500', max: '3000' },
-                                { label: 'Премиум', min: '3000', max: '10000' }
-                            ].map((option) => (
-                                <button
-                                    key={option.label}
-                                    onClick={() => {
-                                        handlePriceChange('min', option.min);
-                                        handlePriceChange('max', option.max);
-                                    }}
-                                    className="p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 text-sm"
-                                >
-                                    {option.label}
-                                </button>
-                            ))}
+                        <div className="flex justify-center items-center gap-4">
+                            <button
+                                onClick={isContinueSearch ? handleNewSearch : handleBack}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                {isContinueSearch ? 'Новый поиск' : 'Назад'}
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(4)}
+                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                            >
+                                Далее
+                            </button>
+                            <button
+                                onClick={() => setCurrentStep(4)}
+                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            >
+                                Пропустить
+                            </button>
                         </div>
                     </div>
-
-                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
-                    <div className="flex justify-center items-center gap-4">
-                        <button
-                            onClick={handleBack}
-                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Назад
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(4)}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
-                        >
-                            Далее
-                        </button>
-                        <button
-                            onClick={() => setCurrentStep(4)}
-                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
-                        >
-                            Пропустить
-                        </button>
-                    </div>
-                </div>
-            )}
+                )}
 
             {/* Шаг 4: Дополнительные опции */}
             {currentStep === 4 && (
@@ -450,7 +492,6 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    {/* ИСПРАВЛЕННЫЕ КНОПКИ - ВЫРОВНЕНЫ ПО ЦЕНТРУ */}
                     <div className="flex justify-center items-center gap-4">
                         <button
                             onClick={handleBack}

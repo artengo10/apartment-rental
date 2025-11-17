@@ -21,7 +21,6 @@ export default function ResultsPage() {
             const sorted = sortApartmentsByRelevance(apartments, criteria);
             setScoredApartments(sorted);
         } else {
-            // Если нет критериев, показываем все варианты
             setScoredApartments(apartments.map(apt => ({
                 ...apt,
                 relevanceScore: 1,
@@ -30,7 +29,29 @@ export default function ResultsPage() {
         }
     }, []);
 
-    // Фильтруем только варианты с баллами > 0
+    const handleEditSearch = () => {
+        if (searchCriteria) {
+            // Определяем на какой шаг переходить
+            let continueStep = 1;
+
+            if (searchCriteria.propertyType === 'apartment') {
+                continueStep = 2; // Выбор комнат
+            } else if (searchCriteria.propertyType === 'house') {
+                continueStep = 2.5; // Параметры дома
+            } else if (searchCriteria.propertyType === 'studio') {
+                continueStep = 3; // Бюджет
+            }
+
+            console.log('Editing search with step:', continueStep, 'and data:', searchCriteria);
+
+            // Сохраняем критерии для продолжения редактирования
+            sessionStorage.setItem('continueSearchData', JSON.stringify({
+                searchData: searchCriteria,
+                currentStep: continueStep
+            }));
+        }
+    };
+
     const relevantApartments = scoredApartments.filter(apt => apt.relevanceScore > 0);
     const bestApartment = relevantApartments[0];
     const similarApartments = relevantApartments.slice(1);
@@ -73,21 +94,28 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    <Link
-                        href="/"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
-                    >
-                        Новый поиск
-                    </Link>
+                    <div className="flex gap-3">
+                        <Link
+                            href="/"
+                            onClick={handleEditSearch}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
+                        >
+                            Отредактировать поиск
+                        </Link>
+                        <Link
+                            href="/"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
+                        >
+                            Новый поиск
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-6 flex-grow min-h-0">
-                    {/* Карта */}
                     <div className="w-full xl:w-7/12 h-full">
                         <MapComponent apartments={relevantApartments} />
                     </div>
 
-                    {/* Список похожих вариантов */}
                     <div className="w-full xl:w-5/12 h-full">
                         <ApartmentList apartments={similarApartments} />
                     </div>
