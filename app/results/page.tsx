@@ -12,6 +12,8 @@ import { ScoredApartment, SearchCriteria } from '@/types/scoring';
 export default function ResultsPage() {
     const [scoredApartments, setScoredApartments] = useState<ScoredApartment[]>([]);
     const [searchCriteria, setSearchCriteria] = useState<SearchCriteria | null>(null);
+    const [selectedApartmentId, setSelectedApartmentId] = useState<number | null>(null);
+    const [highlightedApartmentId, setHighlightedApartmentId] = useState<number | null>(null);
 
     useEffect(() => {
         const criteria = getSearchCriteria();
@@ -29,27 +31,35 @@ export default function ResultsPage() {
         }
     }, []);
 
+    const handleShowOnMap = (apartmentId: number) => {
+        setHighlightedApartmentId(apartmentId);
+        // Через 5 секунд снимаем выделение
+        setTimeout(() => {
+            setHighlightedApartmentId(null);
+        }, 5000);
+    };
+
     const handleEditSearch = () => {
         if (searchCriteria) {
-            // Определяем на какой шаг переходить
             let continueStep = 1;
 
             if (searchCriteria.propertyType === 'apartment') {
-                continueStep = 2; // Выбор комнат
+                continueStep = 2;
             } else if (searchCriteria.propertyType === 'house') {
-                continueStep = 2.5; // Параметры дома
+                continueStep = 2.5;
             } else if (searchCriteria.propertyType === 'studio') {
-                continueStep = 3; // Бюджет
+                continueStep = 3;
             }
 
-            console.log('Editing search with step:', continueStep, 'and data:', searchCriteria);
-
-            // Сохраняем критерии для продолжения редактирования
             sessionStorage.setItem('continueSearchData', JSON.stringify({
                 searchData: searchCriteria,
                 currentStep: continueStep
             }));
         }
+    };
+
+    const handleApartmentSelect = (apartmentId: number) => {
+        setSelectedApartmentId(apartmentId);
     };
 
     const relevantApartments = scoredApartments.filter(apt => apt.relevanceScore > 0);
@@ -113,11 +123,21 @@ export default function ResultsPage() {
 
                 <div className="flex flex-col xl:flex-row gap-6 flex-grow min-h-0">
                     <div className="w-full xl:w-7/12 h-full">
-                        <MapComponent apartments={relevantApartments} />
+                        <MapComponent
+                            apartments={relevantApartments}
+                            onApartmentSelect={handleApartmentSelect}
+                            selectedApartmentId={selectedApartmentId}
+                            highlightedApartmentId={highlightedApartmentId} // ДОБАВЛЕНО: передаем highlightedApartmentId
+                        />
                     </div>
 
                     <div className="w-full xl:w-5/12 h-full">
-                        <ApartmentList apartments={similarApartments} />
+                        <ApartmentList
+                            apartments={similarApartments}
+                            selectedApartmentId={selectedApartmentId}
+                            onApartmentSelect={handleApartmentSelect}
+                            onShowOnMap={handleShowOnMap} // ДОБАВЛЕНО: передаем функцию показа на карте
+                        />
                     </div>
                 </div>
             </main>

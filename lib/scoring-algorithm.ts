@@ -8,26 +8,26 @@ export const calculateRelevanceScore = (
   let score = 0;
   const maxScore = 10;
 
-  // 1. ТИП ЖИЛЬЯ (3 балла) - жесткий критерий
+  // 1. ТИП ЖИЛЬЯ - основной фильтр
   if (
-    criteria.propertyType === "all" ||
-    apartment.type === criteria.propertyType
+    criteria.propertyType !== "all" &&
+    apartment.type !== criteria.propertyType
   ) {
-    score += 3;
-  } else {
-    // Если тип не совпадает - сразу 0 баллов
-    return { ...apartment, relevanceScore: 0 };
+    return { ...apartment, relevanceScore: 0 }; // Полное несоответствие
   }
 
-  // 2. ЦЕНА (3 балла) - очень важно
+  // Базовый балл за соответствие типу
+  score += 3;
+
+  // 2. ЦЕНА (3 балла)
   const price = parseInt(apartment.price.replace(/[^\d]/g, ""));
   const minPrice = parseInt(criteria.priceRange.min) || 0;
   const maxPrice = parseInt(criteria.priceRange.max) || 10000;
 
   if (minPrice > 0 && maxPrice > 0) {
     if (price >= minPrice && price <= maxPrice) {
-      score += 3;
-    } else if (price >= minPrice * 0.8 && price <= maxPrice * 1.2) {
+      score += 3; // Идеальное совпадение
+    } else if (price >= minPrice * 0.7 && price <= maxPrice * 1.3) {
       score += 1; // Частичное совпадение
     }
   }
@@ -39,14 +39,20 @@ export const calculateRelevanceScore = (
     score += 2;
   }
 
-  // 4. КОМНАТЫ/ПЛОЩАДЬ (2 балла) - только если тип конкретный и указаны предпочтения
+  // 4. ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ (2 балла)
+  // Для домов - площадь
   if (apartment.type === "house" && criteria.houseArea && apartment.area) {
     const desiredArea = parseInt(criteria.houseArea);
-    const areaDiff = Math.abs(apartment.area - desiredArea) / desiredArea;
-    if (areaDiff <= 0.2) score += 2;
-    else if (areaDiff <= 0.4) score += 1;
-  } else if (
-    (apartment.type === "apartment" || apartment.type === "studio") &&
+    if (desiredArea > 0) {
+      const areaDiff = Math.abs(apartment.area - desiredArea) / desiredArea;
+      if (areaDiff <= 0.2) score += 2;
+      else if (areaDiff <= 0.4) score += 1;
+    }
+  }
+
+  // Для квартир - комнаты
+  else if (
+    apartment.type === "apartment" &&
     criteria.roomCount &&
     criteria.roomCount !== "any"
   ) {
@@ -56,10 +62,13 @@ export const calculateRelevanceScore = (
     if (actualRooms === desiredRooms) score += 2;
   }
 
+  // Продвижение для лучших вариантов (не случайное)
+  const isPromoted = score >= 8;
+
   return {
     ...apartment,
     relevanceScore: Math.min(maxScore, score),
-    isPromoted: score >= 7 && Math.random() > 0.7,
+    isPromoted,
   };
 };
 
