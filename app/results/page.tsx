@@ -1,4 +1,4 @@
-// app/results/page.tsx
+// app/results/page.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С УМЕНЬШЕННЫМИ КНОПКАМИ
 'use client';
 import { useEffect, useState } from 'react';
 import MapComponent from '@/components/MapComponent';
@@ -33,7 +33,6 @@ export default function ResultsPage() {
 
     const handleShowOnMap = (apartmentId: number) => {
         setHighlightedApartmentId(apartmentId);
-        // Через 5 секунд снимаем выделение
         setTimeout(() => {
             setHighlightedApartmentId(null);
         }, 5000);
@@ -68,21 +67,24 @@ export default function ResultsPage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
-            <header className="bg-primary text-primary-foreground px-4 py-3 sm:px-6 sm:py-4 shadow-sm border-b border-black">
+            {/* ХЕДЕР С УМЕНЬШЕННЫМИ КНОПКАМИ */}
+            <header className="bg-primary text-primary-foreground px-3 py-2 sm:px-6 sm:py-4 shadow-sm border-b border-black">
                 <div className="container mx-auto flex justify-between items-center">
                     <Link href="/" className="text-left hover:opacity-80 transition-opacity">
-                        <h1 className="text-xl sm:text-2xl font-bold">СъёмБронь</h1>
+                        <h1 className="text-lg sm:text-2xl font-bold">СъёмБронь</h1>
                         <p className="text-xs sm:text-sm text-primary-foreground/80 hidden sm:block">
                             Результаты поиска
                         </p>
                     </Link>
 
-                    <nav className="flex gap-4">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm">
-                            Войти/Зарегистрироваться
+                    <nav className="flex gap-2">
+                        {/* УМЕНЬШЕННАЯ КНОПКА ВОЙТИ/ЗАРЕГИСТРИРОВАТЬСЯ */}
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded-md font-medium transition-colors text-xs min-h-[32px]">
+                            Войти
                         </button>
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 rounded-md font-medium transition-colors text-sm sm:text-base border border-black">
-                            Добавить жилье
+                        {/* УМЕНЬШЕННАЯ КНОПКА ДОБАВИТЬ ЖИЛЬЕ */}
+                        <button className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors text-xs border border-black min-h-[32px]">
+                            Добавить
                         </button>
                     </nav>
                 </div>
@@ -104,17 +106,18 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    <div className="flex gap-3">
+                    {/* УМЕНЬШЕННЫЕ КНОПКИ ОТРЕДАКТИРОВАТЬ ПОИСК И НОВЫЙ ПОИСК */}
+                    <div className="flex gap-2">
                         <Link
                             href="/"
                             onClick={handleEditSearch}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-xs h-fit min-h-[32px] flex items-center"
                         >
                             Отредактировать поиск
                         </Link>
                         <Link
                             href="/"
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm h-fit"
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-xs h-fit min-h-[32px] flex items-center"
                         >
                             Новый поиск
                         </Link>
@@ -127,7 +130,7 @@ export default function ResultsPage() {
                             apartments={relevantApartments}
                             onApartmentSelect={handleApartmentSelect}
                             selectedApartmentId={selectedApartmentId}
-                            highlightedApartmentId={highlightedApartmentId} // ДОБАВЛЕНО: передаем highlightedApartmentId
+                            highlightedApartmentId={highlightedApartmentId}
                         />
                     </div>
 
@@ -136,7 +139,7 @@ export default function ResultsPage() {
                             apartments={similarApartments}
                             selectedApartmentId={selectedApartmentId}
                             onApartmentSelect={handleApartmentSelect}
-                            onShowOnMap={handleShowOnMap} // ДОБАВЛЕНО: передаем функцию показа на карте
+                            onShowOnMap={handleShowOnMap}
                         />
                     </div>
                 </div>

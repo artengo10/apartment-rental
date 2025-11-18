@@ -1,10 +1,10 @@
-// components/MapComponent.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ ЗУМ И ИКОНКИ
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { Apartment } from '../types/apartment';
 import { yandexMapsLoader } from '../lib/yandex-maps-loader';
-import { Building, Home, Check } from 'lucide-react';
+import { Building, Home, Check, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const YANDEX_MAPS_API_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
@@ -21,33 +21,67 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeMap = async () => {
       try {
+        setIsLoading(true);
+        setMapError(null);
+
+        console.log('Initializing Yandex Maps...');
+        console.log('API Key present:', !!YANDEX_MAPS_API_KEY);
+
         if (!YANDEX_MAPS_API_KEY) {
-          throw new Error('Yandex Maps API key not found');
+          throw new Error('Yandex Maps API key not found. Please check your environment variables.');
         }
 
-        await yandexMapsLoader.load(YANDEX_MAPS_API_KEY);
+        // Добавляем таймаут для загрузки карт
+        const loadPromise = yandexMapsLoader.load(YANDEX_MAPS_API_KEY);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Yandex Maps loading timeout')), 10000)
+        );
 
-        if (!isMounted || !mapRef.current || !window.ymaps) return;
+        await Promise.race([loadPromise, timeoutPromise]);
 
+        if (!isMounted || !mapRef.current || !window.ymaps) {
+          console.log('Component unmounted or DOM not ready');
+          return;
+        }
+
+        console.log('Yandex Maps loaded successfully');
+
+        // Если карта уже существует, уничтожаем её
         if (mapInstanceRef.current) {
           mapInstanceRef.current.destroy();
         }
 
+        // УСТАНАВЛИВАЕМ РАЗНЫЙ ЗУМ ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
+        const defaultZoom = isMobile ? 11 : 12;
+
         const mapInstance = new window.ymaps.Map(mapRef.current, {
           center: [56.2965, 43.9361],
-          zoom: 12,
+          zoom: defaultZoom,
           controls: ['zoomControl', 'typeSelector', 'fullscreenControl']
         });
 
         mapInstanceRef.current = mapInstance;
 
-        // Функция для создания SVG иконок с ОРАНЖЕВЫМ цветом для выбранных объектов
+        // Функция для создания SVG иконок с РАЗМЕРАМИ ДЛЯ МОБИЛЬНЫХ
         const createCustomIcon = (type: string, isSelected: boolean = false, isHighlighted: boolean = false) => {
           const apartmentIconSvg = `
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -83,23 +117,23 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
               iconSvg = apartmentIconSvg;
           }
 
-          // ИСПРАВЛЕННАЯ ЛОГИКА ЦВЕТОВ:
+          // РАЗМЕРЫ ИКОНОК ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
           let size, strokeWidth, fillColor;
 
           if (isHighlighted) {
-            // Выделенная метка - больше и темный цвет
-            size = 48;
-            strokeWidth = 3;
+            // Выделенная метка
+            size = isMobile ? 44 : 48;
+            strokeWidth = isMobile ? 2.5 : 3;
             fillColor = getHighlightColorByType(type);
           } else if (isSelected) {
-            // ВЫБРАННАЯ МЕТКА - ТЕПЕРЬ ОРАНЖЕВЫЙ!
-            size = 42;
-            strokeWidth = 2.5;
-            fillColor = '#F59E0B'; // Оранжевый для выбранных объектов
+            // ВЫБРАННАЯ МЕТКА - ОРАНЖЕВЫЙ
+            size = isMobile ? 38 : 42;
+            strokeWidth = isMobile ? 2 : 2.5;
+            fillColor = '#F59E0B';
           } else {
             // Обычная метка
-            size = 36;
-            strokeWidth = 2;
+            size = isMobile ? 32 : 36;
+            strokeWidth = isMobile ? 1.5 : 2;
             fillColor = getColorByType(type);
           }
 
@@ -138,6 +172,19 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           const isSelected = selectedApartmentId === apartment.id;
           const isHighlighted = highlightedApartmentId === apartment.id;
           const iconUrl = createCustomIcon(apartment.type, isSelected, isHighlighted);
+
+          // РАСЧЕТ СМЕЩЕНИЯ ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
+          const iconSize = isHighlighted ?
+            (isMobile ? [44, 44] : [48, 48]) :
+            isSelected ?
+              (isMobile ? [38, 38] : [42, 42]) :
+              (isMobile ? [32, 32] : [36, 36]);
+
+          const iconOffset = isHighlighted ?
+            (isMobile ? [-22, -22] : [-24, -24]) :
+            isSelected ?
+              (isMobile ? [-19, -19] : [-21, -21]) :
+              (isMobile ? [-16, -16] : [-18, -18]);
 
           const placemark = new window.ymaps.Placemark(
             [apartment.lat, apartment.lng],
@@ -184,8 +231,8 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
             {
               iconLayout: 'default#image',
               iconImageHref: iconUrl,
-              iconImageSize: isHighlighted ? [48, 48] : isSelected ? [42, 42] : [36, 36],
-              iconImageOffset: isHighlighted ? [-24, -24] : isSelected ? [-21, -21] : [-18, -18],
+              iconImageSize: iconSize,
+              iconImageOffset: iconOffset,
               balloonCloseButton: true,
               hideIconOnBalloonOpen: false
             }
@@ -211,7 +258,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         if (highlightedApartmentId) {
           const highlightedApartment = apartments.find(apt => apt.id === highlightedApartmentId);
           if (highlightedApartment) {
-            mapInstance.setCenter([highlightedApartment.lat, highlightedApartment.lng], 14, {
+            mapInstance.setCenter([highlightedApartment.lat, highlightedApartment.lng], isMobile ? 13 : 14, {
               duration: 500
             });
           }
@@ -227,9 +274,11 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         };
 
         setMapError(null);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading Yandex Maps:', error);
         setMapError('Не удалось загрузить карту. Пожалуйста, обновите страницу.');
+        setIsLoading(false);
       }
     };
 
@@ -243,8 +292,9 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
       (window as any).openDetails = null;
       (window as any).makeCall = null;
     };
-  }, [apartments, onApartmentSelect, selectedApartmentId, highlightedApartmentId, router]);
+  }, [apartments, onApartmentSelect, selectedApartmentId, highlightedApartmentId, router, isMobile]);
 
+  // Остальной код компонента без изменений...
   if (mapError) {
     return (
       <div className="w-full h-full">
@@ -256,8 +306,9 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
               <p className="text-gray-600 mb-2">{mapError}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
               >
+                <RefreshCw className="w-4 h-4" />
                 Обновить страницу
               </button>
             </div>
@@ -269,41 +320,32 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
   return (
     <div className="w-full h-full">
-      {/* ОБНОВЛЕННАЯ ЛЕГЕНДА С ОРАНЖЕВЫМ ЦВЕТОМ */}
-      <div className="bg-white border-2 border-black rounded-lg p-4 mb-4 shadow-sm">
-        <h3 className="text-lg font-semibold mb-3 text-center md:text-left">Обозначения на карте:</h3>
+      {/* Легенда - КОМПАКТНАЯ ДЛЯ МОБИЛЬНЫХ */}
+      <div className="bg-white border-2 border-black rounded-lg p-3 mb-3 shadow-sm">
+        <h3 className="text-base font-semibold mb-2 text-center sm:text-left">Обозначения:</h3>
 
-        <div className="md:hidden grid grid-cols-2 gap-3 mb-3">
+        {/* Мобильная легенда - более компактная */}
+        <div className="grid grid-cols-2 gap-2 mb-3 sm:hidden">
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <Building className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-sm text-gray-700 whitespace-nowrap">Квартиры</span>
+            <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <span className="text-xs text-gray-700">Квартиры</span>
           </div>
-
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <Home className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-sm text-gray-700 whitespace-nowrap">Дома</span>
+            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+            <span className="text-xs text-gray-700">Дома</span>
           </div>
-
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <Building className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-sm text-gray-700 whitespace-nowrap">Студии</span>
+            <div className="w-4 h-4 bg-purple-600 rounded-full flex-shrink-0"></div>
+            <span className="text-xs text-gray-700">Студии</span>
           </div>
-
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <Check className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-sm text-gray-700 whitespace-nowrap">Выбранные</span>
+            <div className="w-4 h-4 bg-orange-500 rounded-full flex-shrink-0"></div>
+            <span className="text-xs text-gray-700">Выбранные</span>
           </div>
         </div>
 
-        <div className="hidden md:grid grid-cols-4 gap-3 mb-3">
+        {/* Десктопная легенда */}
+        <div className="hidden sm:grid grid-cols-4 gap-3 mb-3">
           <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg">
             <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
               <Building className="w-4 h-4 text-white" />
@@ -342,35 +384,46 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         </div>
 
         {highlightedApartmentId && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-            <p className="text-sm text-blue-800 font-medium">
-              💡 Выделен объект, показанный на карте
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
+            <p className="text-xs text-blue-800 font-medium">
+              💡 Выделен объект на карте
             </p>
           </div>
         )}
 
         {selectedApartmentId && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
-            <p className="text-sm text-orange-800 font-medium">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mb-2">
+            <p className="text-xs text-orange-800 font-medium">
               ✅ Выбран объект в списке
             </p>
           </div>
         )}
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-sm text-yellow-800 font-medium mb-1">💡 Как пользоваться:</p>
-          <ul className="text-xs text-yellow-700 list-disc list-inside space-y-1">
-            <li><strong>Один клик</strong> - выделить объект в списке (оранжевый)</li>
-            <li><strong>Двойной клик</strong> - открыть подробности и кнопки</li>
-            <li><strong>Кнопка "🗺️" в списке</strong> - показать объект на карте (синий)</li>
-            <li><strong>Колесико мыши</strong> - приблизить/отдалить карту</li>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+          <p className="text-xs text-yellow-800 font-medium mb-1">💡 Как пользоваться:</p>
+          <ul className="text-xs text-yellow-700 list-disc list-inside space-y-0.5">
+            <li><strong>Клик</strong> - выделить в списке</li>
+            <li><strong>Двойной клик</strong> - подробности</li>
+            <li><strong>Кнопка "🗺️"</strong> - показать на карте</li>
           </ul>
         </div>
       </div>
 
+      {/* Индикатор загрузки */}
+      {isLoading && (
+        <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg border-2 border-black mb-4">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
+            <p className="text-gray-600">Загрузка карты...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Карта с адаптивной высотой */}
       <div
         ref={mapRef}
-        className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-lg border-2 border-black shadow-sm"
+        className={`w-full rounded-lg border-2 border-black shadow-sm ${isLoading ? 'hidden' : 'block'
+          } h-[300px] xs:h-[350px] sm:h-[400px] md:h-[500px] lg:h-[600px]`}
       />
     </div>
   );

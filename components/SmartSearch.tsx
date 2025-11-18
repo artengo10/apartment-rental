@@ -1,4 +1,4 @@
-// components/SmartSearch.tsx
+// components/SmartSearch.tsx - ИСПРАВЛЕННАЯ АНКЕТА
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -27,8 +27,20 @@ const SmartSearch = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [searchData, setSearchData] = useState(initialSearchData);
     const [isContinueSearch, setIsContinueSearch] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     const totalApartments = 100;
+
+    // Определяем мобильное устройство
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // ПРОВЕРКА НА ПРОДОЛЖЕНИЕ РЕДАКТИРОВАНИЯ ПРИ ЗАГРУЗКЕ
     useEffect(() => {
@@ -50,7 +62,7 @@ const SmartSearch = () => {
                 console.error('Error parsing continue search data:', error);
             }
         }
-    }, []); // Убираем зависимость от pathname, чтобы срабатывало только при монтировании
+    }, []);
 
     const calculateProgress = () => {
         const totalSteps = 4;
@@ -153,7 +165,7 @@ const SmartSearch = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto bg-white rounded-lg border-2 border-black p-6 sm:p-8 shadow-lg">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg border-2 border-black p-4 sm:p-8 shadow-lg">
             {/* Уведомление с количеством квартир */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center">
                 <p className="text-blue-800 font-medium">
@@ -180,50 +192,51 @@ const SmartSearch = () => {
                 </div>
             </div>
 
-            {/* Шаг 1: Выбор типа жилья (показываем только если не продолжаем редактирование) */}
+            {/* Шаг 1: Выбор типа жилья - ИСПРАВЛЕННАЯ СЕТКА */}
             {currentStep === 1 && !isContinueSearch && (
                 <div className="text-center">
                     <h3 className="text-xl font-bold mb-6">Что вы ищете?</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <button
                             onClick={() => handlePropertyTypeSelect('apartment')}
-                            className="p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center"
+                            className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
                         >
-                            <div className="text-3xl mb-3">🏢</div>
-                            <span className="font-semibold">Квартира</span>
-                            <span className="text-sm text-gray-600 mt-1">Отдельная квартира</span>
+                            <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🏢</div>
+                            <span className="font-semibold text-sm sm:text-base">Квартира</span>
+                            <span className="text-xs text-gray-600 mt-1 hidden sm:block">Отдельная квартира</span>
                         </button>
 
                         <button
                             onClick={() => handlePropertyTypeSelect('house')}
-                            className="p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center"
+                            className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
                         >
-                            <div className="text-3xl mb-3">🏠</div>
-                            <span className="font-semibold">Дом</span>
-                            <span className="text-sm text-gray-600 mt-1">Частный дом</span>
+                            <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🏠</div>
+                            <span className="font-semibold text-sm sm:text-base">Дом</span>
+                            <span className="text-xs text-gray-600 mt-1 hidden sm:block">Частный дом</span>
                         </button>
 
                         <button
                             onClick={() => handlePropertyTypeSelect('studio')}
-                            className="p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center"
+                            className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
                         >
-                            <div className="text-3xl mb-3">📐</div>
-                            <span className="font-semibold">Студия</span>
-                            <span className="text-sm text-gray-600 mt-1">Помещение-студия</span>
+                            <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">📐</div>
+                            <span className="font-semibold text-sm sm:text-base">Студия</span>
+                            <span className="text-xs text-gray-600 mt-1 hidden sm:block">Помещение-студия</span>
                         </button>
 
                         <button
                             onClick={() => handlePropertyTypeSelect('all')}
-                            className="p-6 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center"
+                            className="p-4 sm:p-6 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
                         >
-                            <div className="text-3xl mb-3">🔍</div>
-                            <span className="font-semibold">Все варианты</span>
-                            <span className="text-sm text-gray-600 mt-1">Показать все варианты</span>
+                            <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🔍</div>
+                            <span className="font-semibold text-sm sm:text-base">Все варианты</span>
+                            <span className="text-xs text-gray-600 mt-1 hidden sm:block">Показать все варианты</span>
                         </button>
                     </div>
                 </div>
             )}
 
+            {/* Остальные шаги остаются без изменений */}
             {/* Шаг 2: Количество комнат (только для квартир) */}
             {((currentStep === 2 && searchData.propertyType === 'apartment') ||
                 (isContinueSearch && searchData.propertyType === 'apartment' && currentStep === 2)) && (
@@ -245,22 +258,22 @@ const SmartSearch = () => {
                             ))}
                         </div>
 
-                        <div className="flex justify-center items-center gap-4">
+                        <div className="flex flex-col xs:flex-row justify-center items-center gap-2 sm:gap-4">
                             <button
                                 onClick={isContinueSearch ? handleNewSearch : handleBack}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 {isContinueSearch ? 'Новый поиск' : 'Назад'}
                             </button>
                             <button
                                 onClick={() => setCurrentStep(3)}
-                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                                className="bg-green-600 text-white px-6 py-3 sm:py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full xs:w-auto min-h-[44px]"
                             >
                                 Далее
                             </button>
                             <button
                                 onClick={() => setCurrentStep(3)}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 Пропустить
                             </button>
@@ -342,22 +355,22 @@ const SmartSearch = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-center items-center gap-4">
+                        <div className="flex flex-col xs:flex-row justify-center items-center gap-2 sm:gap-4">
                             <button
                                 onClick={isContinueSearch ? handleNewSearch : handleBack}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 {isContinueSearch ? 'Новый поиск' : 'Назад'}
                             </button>
                             <button
                                 onClick={() => setCurrentStep(3)}
-                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                                className="bg-green-600 text-white px-6 py-3 sm:py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full xs:w-auto min-h-[44px]"
                             >
                                 Далее
                             </button>
                             <button
                                 onClick={() => setCurrentStep(3)}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 Пропустить
                             </button>
@@ -425,22 +438,22 @@ const SmartSearch = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-center items-center gap-4">
+                        <div className="flex flex-col xs:flex-row justify-center items-center gap-2 sm:gap-4">
                             <button
                                 onClick={isContinueSearch ? handleNewSearch : handleBack}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 {isContinueSearch ? 'Новый поиск' : 'Назад'}
                             </button>
                             <button
                                 onClick={() => setCurrentStep(4)}
-                                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                                className="bg-green-600 text-white px-6 py-3 sm:py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full xs:w-auto min-h-[44px]"
                             >
                                 Далее
                             </button>
                             <button
                                 onClick={() => setCurrentStep(4)}
-                                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                                className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                             >
                                 Пропустить
                             </button>
@@ -492,16 +505,16 @@ const SmartSearch = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-center items-center gap-4">
+                    <div className="flex flex-col xs:flex-row justify-center items-center gap-2 sm:gap-4">
                         <button
                             onClick={handleBack}
-                            className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm min-w-[100px]"
+                            className="bg-gray-500 text-white px-4 py-3 sm:py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors text-sm w-full xs:w-auto min-h-[44px]"
                         >
                             Назад
                         </button>
                         <button
                             onClick={handleSearch}
-                            className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors min-w-[120px]"
+                            className="bg-green-600 text-white px-6 py-3 sm:py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full xs:w-auto min-h-[44px]"
                         >
                             Найти жилье
                         </button>

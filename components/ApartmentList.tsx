@@ -1,9 +1,9 @@
-// components/ApartmentList.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ С ОТЗЫВАМИ ПРОДАВЦА
+// components/ApartmentList.tsx - ИСПРАВЛЕННАЯ СЕТКА ДЛЯ МОБИЛЬНЫХ
 'use client';
 import { ScoredApartment } from '@/types/scoring';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Phone, Calendar, Star, Home, Building, MessageCircle } from 'lucide-react';
+import { MapPin, Phone, Calendar, Star, Home, Building, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ApartmentListProps {
     apartments: ScoredApartment[];
@@ -14,13 +14,12 @@ interface ApartmentListProps {
 
 // Функция для генерации случайных данных об отзывах на основе ID
 const generateSellerReviews = (apartmentId: number) => {
-    // Детерминированная генерация на основе ID для постоянства
     const seed = apartmentId * 12345;
-    const rating = 4 + (seed % 100) / 100; // Рейтинг от 4.0 до 5.0
-    const reviewCount = 10 + (seed % 100); // Количество отзывов от 10 до 110
+    const rating = 4 + (seed % 100) / 100;
+    const reviewCount = 10 + (seed % 100);
 
     return {
-        rating: Math.round(rating * 10) / 10, // Округляем до одного знака
+        rating: Math.round(rating * 10) / 10,
         reviewCount
     };
 };
@@ -32,12 +31,12 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
     const [isMobile, setIsMobile] = useState(false);
     const [permanentlyHighlighted, setPermanentlyHighlighted] = useState<number | null>(null);
 
-    // Адаптивное количество элементов
+    // Адаптивное количество элементов - ТЕПЕРЬ 4 ДЛЯ МОБИЛЬНЫХ (2x2)
     useEffect(() => {
         const updateLayout = () => {
             const mobile = window.innerWidth < 768;
             setIsMobile(mobile);
-            setItemsPerPage(mobile ? 4 : 6);
+            setItemsPerPage(mobile ? 4 : 6); // 4 карточки на мобильных (2 ряда по 2)
         };
 
         updateLayout();
@@ -179,28 +178,28 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
     }
 
     return (
-        <div className="border-2 border-black rounded-lg p-3 sm:p-4 bg-white h-full flex flex-col">
-            {/* Заголовок */}
-            <div className="flex justify-between items-center mb-4 sm:mb-6 flex-shrink-0">
-                <div>
-                    <h3 className="text-lg sm:text-xl font-bold">Найдено вариантов</h3>
-                    <p className="text-sm text-gray-600">
+        <div className="border-2 border-black rounded-lg p-2 sm:p-4 bg-white h-full flex flex-col">
+            {/* Заголовок для мобильных */}
+            <div className="flex justify-between items-center mb-3 sm:mb-6 flex-shrink-0">
+                <div className="flex-1">
+                    <h3 className="text-base sm:text-xl font-bold">Найдено вариантов</h3>
+                    <p className="text-xs text-gray-600">
                         {apartments.length} объектов • Страница {currentPage} из {totalPages}
                     </p>
                 </div>
                 {permanentlyHighlighted && (
                     <button
                         onClick={() => setPermanentlyHighlighted(null)}
-                        className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors"
+                        className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-colors ml-2"
                     >
-                        Сбросить выделение
+                        Сброс
                     </button>
                 )}
             </div>
 
-            {/* Сетка карточек */}
-            <div className="flex-grow mb-4 sm:mb-6 min-h-0 overflow-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full auto-rows-fr">
+            {/* Сетка карточек - 2 КОЛОНКИ НА МОБИЛЬНЫХ, 2 НА ДЕСКТОПЕ */}
+            <div className="flex-grow mb-3 sm:mb-6 min-h-0 overflow-auto">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 h-full auto-rows-fr">
                     {currentApartments.map((apartment) => {
                         const isSelected = selectedApartmentId === apartment.id;
                         const isHighlighted = permanentlyHighlighted === apartment.id;
@@ -211,8 +210,8 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
                                 id={`apartment-${apartment.id}`}
                                 key={apartment.id}
                                 className={`
-                                    border-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 
-                                    flex flex-col overflow-hidden cursor-pointer min-h-[180px] h-full
+                                    border-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-all duration-200 
+                                    flex flex-col overflow-hidden cursor-pointer min-h-[160px] h-full
                                     ${isSelected ? 'border-green-500 bg-green-50 shadow-md' :
                                         isHighlighted ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200' :
                                             'border-gray-300 hover:border-gray-400'}
@@ -220,7 +219,7 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
                                 onClick={() => handleCardClick(apartment.id)}
                             >
                                 {/* Заголовок карточки */}
-                                <div className="p-3 flex-1 min-h-0 flex flex-col">
+                                <div className="p-2 flex-1 min-h-0 flex flex-col">
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 pr-2">
@@ -237,23 +236,22 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
                                             </div>
                                         </div>
 
-                                        {/* ОТЗЫВЫ ПРОДАВЦА вместо баллов */}
-                                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                            <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full">
-                                                <MessageCircle className="w-3 h-3 text-yellow-600" />
+                                        {/* ОТЗЫВЫ ПРОДАВЦА - компактнее на мобильных */}
+                                        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                                            <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded-full">
+                                                <MessageCircle className="w-2.5 h-2.5 text-yellow-600" />
                                                 <span className="text-xs font-bold text-yellow-700">
                                                     {sellerReviews.rating}
                                                 </span>
-                                                <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                                             </div>
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-gray-500 hidden sm:block">
                                                 {sellerReviews.reviewCount} отзывов
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Адрес */}
-                                    <div className="flex items-start gap-1 mb-2">
+                                    <div className="flex items-start gap-1 mb-1">
                                         <MapPin className="w-3 h-3 text-gray-400 mt-0.5 flex-shrink-0" />
                                         <p className="text-xs text-gray-600 line-clamp-2 flex-1" title={apartment.address}>
                                             {apartment.address}
@@ -261,14 +259,16 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
                                     </div>
 
                                     {/* Детали */}
-                                    <div className="space-y-2 mb-2 flex-grow">
+                                    <div className="space-y-1 mb-2 flex-grow">
                                         <p className="text-xs text-gray-700 line-clamp-2">
                                             {apartment.description}
                                         </p>
 
-                                        {/* БАЛЛЫ СОВПАДЕНИЯ - перемещены сюда */}
+                                        {/* БАЛЛЫ СОВПАДЕНИЯ */}
                                         <div className="flex items-center justify-between mt-2">
-                                            <span className="text-xs text-gray-600 font-medium">Совпадение с запросом:</span>
+                                            <span className="text-xs text-gray-600 font-medium">
+                                                Совпад.:
+                                            </span>
                                             <div className={`
                                                 px-2 py-1 rounded-full text-xs font-bold
                                                 ${apartment.relevanceScore >= 7 ? 'bg-green-100 text-green-800 border border-green-300' :
@@ -301,32 +301,32 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
 
                                     {/* Цена и район */}
                                     <div className="flex items-center justify-between mt-auto pt-2">
-                                        <span className="font-bold text-green-600 text-base">{apartment.price}</span>
-                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[100px]">
+                                        <span className="font-bold text-green-600 text-sm">{apartment.price}</span>
+                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[80px]">
                                             {apartment.district}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Кнопки действий */}
+                                {/* Кнопки действий - АДАПТИВНЫЕ ДЛЯ МОБИЛЬНЫХ */}
                                 <div className="flex border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={(e) => handleCall(apartment, e)}
-                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 rounded-bl-lg"
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 rounded-bl-lg min-h-[44px]"
                                     >
                                         <Phone className="w-3 h-3" />
                                         <span className="hidden xs:inline">Звонок</span>
                                     </button>
                                     <button
                                         onClick={(e) => handleDetails(apartment, e)}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 border-l border-white border-opacity-50"
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 border-l border-white border-opacity-50 min-h-[44px]"
                                     >
                                         <Calendar className="w-3 h-3" />
                                         <span className="hidden xs:inline">Подробно</span>
                                     </button>
                                     <button
                                         onClick={(e) => handleShowOnMap(apartment.id, e)}
-                                        className={`flex-1 py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 border-l border-white border-opacity-50 rounded-br-lg
+                                        className={`flex-1 py-2 px-1 text-xs font-medium transition-colors flex items-center justify-center gap-1 border-l border-white border-opacity-50 rounded-br-lg min-h-[44px]
                                             ${isHighlighted ? 'bg-purple-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
                                         title={isHighlighted ? "Выделен на карте" : "Показать на карте"}
                                     >
@@ -340,38 +340,44 @@ const ApartmentList = ({ apartments, selectedApartmentId, onApartmentSelect, onS
                 </div>
             </div>
 
-            {/* Пагинация */}
+            {/* ПАГИНАЦИЯ - АДАПТИВНАЯ */}
             <div className="flex-shrink-0">
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                     <div className="text-xs text-gray-600 order-2 sm:order-1 text-center">
                         {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, apartments.length)} из {apartments.length}
                     </div>
 
-                    <div className="flex items-center gap-1 order-1 sm:order-2">
+                    <div className="flex items-center gap-1 order-1 sm:order-2 w-full justify-center sm:w-auto">
                         <button
                             onClick={prevPage}
                             disabled={currentPage === 1}
-                            className={`p-1.5 rounded-lg transition-colors ${currentPage === 1
+                            className={`p-2 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === 1
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'bg-blue-600 text-white hover:bg-blue-700'
                                 }`}
                         >
-                            ←
+                            <ChevronLeft className="w-4 h-4" />
                         </button>
 
-                        <div className="flex items-center gap-1 flex-wrap justify-center">
+                        <div className="hidden sm:flex items-center gap-1 mx-2">
                             {renderPageNumbers()}
+                        </div>
+
+                        <div className="sm:hidden flex items-center mx-2">
+                            <span className="text-sm font-medium px-2">
+                                {currentPage} / {totalPages}
+                            </span>
                         </div>
 
                         <button
                             onClick={nextPage}
                             disabled={currentPage === totalPages}
-                            className={`p-1.5 rounded-lg transition-colors ${currentPage === totalPages
+                            className={`p-2 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center ${currentPage === totalPages
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'bg-blue-600 text-white hover:bg-blue-700'
                                 }`}
                         >
-                            →
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
