@@ -1,10 +1,10 @@
-// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ ЗУМ И ИКОНКИ
+// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Apartment } from '../types/apartment';
-import { yandexMapsLoader } from '../lib/yandex-maps-loader';
-import { Building, Home, Check, RefreshCw } from 'lucide-react';
+import { Apartment } from '@/types/apartment';
+import { yandexMapsLoader } from '@/lib/yandex-maps-loader';
+import { Building, Home, Check, RefreshCw, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const YANDEX_MAPS_API_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
@@ -43,9 +43,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         setIsLoading(true);
         setMapError(null);
 
-        console.log('Initializing Yandex Maps...');
-        console.log('API Key present:', !!YANDEX_MAPS_API_KEY);
-
         if (!YANDEX_MAPS_API_KEY) {
           throw new Error('Yandex Maps API key not found. Please check your environment variables.');
         }
@@ -59,18 +56,15 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         await Promise.race([loadPromise, timeoutPromise]);
 
         if (!isMounted || !mapRef.current || !window.ymaps) {
-          console.log('Component unmounted or DOM not ready');
           return;
         }
-
-        console.log('Yandex Maps loaded successfully');
 
         // Если карта уже существует, уничтожаем её
         if (mapInstanceRef.current) {
           mapInstanceRef.current.destroy();
         }
 
-        // УСТАНАВЛИВАЕМ РАЗНЫЙ ЗУМ ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
+        // Устанавливаем разный зум для мобильных и десктопа
         const defaultZoom = isMobile ? 11 : 12;
 
         const mapInstance = new window.ymaps.Map(mapRef.current, {
@@ -81,7 +75,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
         mapInstanceRef.current = mapInstance;
 
-        // Функция для создания SVG иконок с РАЗМЕРАМИ ДЛЯ МОБИЛЬНЫХ
+        // Функция для создания SVG иконок
         const createCustomIcon = (type: string, isSelected: boolean = false, isHighlighted: boolean = false) => {
           const apartmentIconSvg = `
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -117,7 +111,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
               iconSvg = apartmentIconSvg;
           }
 
-          // РАЗМЕРЫ ИКОНОК ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
+          // Размеры иконок для мобильных и десктопа
           let size, strokeWidth, fillColor;
 
           if (isHighlighted) {
@@ -126,7 +120,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
             strokeWidth = isMobile ? 2.5 : 3;
             fillColor = getHighlightColorByType(type);
           } else if (isSelected) {
-            // ВЫБРАННАЯ МЕТКА - ОРАНЖЕВЫЙ
+            // Выбранная метка - оранжевый
             size = isMobile ? 38 : 42;
             strokeWidth = isMobile ? 2 : 2.5;
             fillColor = '#F59E0B';
@@ -173,7 +167,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           const isHighlighted = highlightedApartmentId === apartment.id;
           const iconUrl = createCustomIcon(apartment.type, isSelected, isHighlighted);
 
-          // РАСЧЕТ СМЕЩЕНИЯ ДЛЯ МОБИЛЬНЫХ И ДЕСКТОПА
+          // Расчет смещения для мобильных и десктопа
           const iconSize = isHighlighted ?
             (isMobile ? [44, 44] : [48, 48]) :
             isSelected ?
@@ -190,8 +184,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
             [apartment.lat, apartment.lng],
             {
               balloonContentHeader: `
-                <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))
-                }">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}">
                   ${apartment.title} ${isHighlighted ? '⭐' : ''} ${isSelected ? '✓' : ''}
                 </div>
               `,
@@ -200,11 +193,8 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
                   <p style="margin: 6px 0; font-size: 18px; color: #10b981; font-weight: bold;">${apartment.price}/сутки</p>
                   <p style="margin: 6px 0; color: #374151;"><strong>Адрес:</strong> ${apartment.address}</p>
                   <p style="margin: 6px 0; color: #6b7280;">${apartment.description}</p>
-                  <div style="margin: 8px 0; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')
-                }; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))
-                }; border-radius: 2px;">
-                    <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))
-                }; font-weight: 500;">
+                  <div style="margin: 8px 0; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')}; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; border-radius: 2px;">
+                    <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; font-weight: 500;">
                       ${apartment.type === 'apartment' ? 'Квартира' : apartment.type === 'house' ? 'Дом' : 'Студия'}
                       ${isSelected ? ' (выбрана)' : ''}
                       ${isHighlighted ? ' (показана на карте)' : ''}
@@ -294,7 +284,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
     };
   }, [apartments, onApartmentSelect, selectedApartmentId, highlightedApartmentId, router, isMobile]);
 
-  // Остальной код компонента без изменений...
   if (mapError) {
     return (
       <div className="w-full h-full">
@@ -320,11 +309,11 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
   return (
     <div className="w-full h-full">
-      {/* Легенда - КОМПАКТНАЯ ДЛЯ МОБИЛЬНЫХ */}
+      {/* Легенда */}
       <div className="bg-white border-2 border-black rounded-lg p-3 mb-3 shadow-sm">
         <h3 className="text-base font-semibold mb-2 text-center sm:text-left">Обозначения:</h3>
 
-        {/* Мобильная легенда - более компактная */}
+        {/* Мобильная легенда */}
         <div className="grid grid-cols-2 gap-2 mb-3 sm:hidden">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
@@ -385,8 +374,9 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
         {highlightedApartmentId && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
-            <p className="text-xs text-blue-800 font-medium">
-              💡 Выделен объект на карте
+            <p className="text-xs text-blue-800 font-medium flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              Объект выделен на карте
             </p>
           </div>
         )}

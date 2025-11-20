@@ -1,4 +1,4 @@
-// app/page.tsx - ОБНОВЛЕННЫЙ ХЕДЕР С МЕНЬШИМИ КНОПКАМИ
+// app/page.tsx - ОБНОВЛЕННЫЙ С НОВОЙ ЛОГИКОЙ
 'use client';
 
 import SmartSearch from '@/components/SmartSearch';
@@ -26,11 +26,9 @@ export default function Home() {
           </Link>
 
           <nav className="flex gap-2">
-            {/* УМЕНЬШЕННАЯ КНОПКА ВОЙТИ/ЗАРЕГИСТРИРОВАТЬСЯ */}
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded-md font-medium transition-colors text-xs min-h-[32px]">
+            <button className="bg-blue-800 hover:bg-blue-900 text-white px-2 py-1.5 rounded-md font-medium transition-colors text-xs min-h-[32px]">
               Войти
             </button>
-            {/* УМЕНЬШЕННАЯ КНОПКА ДОБАВИТЬ ЖИЛЬЕ */}
             <button className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors text-xs border border-black min-h-[32px]">
               Добавить
             </button>
@@ -38,16 +36,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Остальной код без изменений */}
       <main className="flex-1 container mx-auto px-2 sm:px-6 py-4 sm:py-12">
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
             Найдем идеальное жилье для вас
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-            Ответьте на несколько вопросов, и мы подберем лучшие варианты
-            в Сормовском районе Нижнего Новгорода
-          </p>
         </div>
 
         <div className="px-1 sm:px-0">

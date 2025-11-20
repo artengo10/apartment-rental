@@ -69,6 +69,7 @@ export const apartments: Apartment[] = [
     rooms: 2,
     area: 48,
     floor: 7,
+    amenities: ["Wi-Fi", "Кондиционер", "Телевизор"],
   },
   {
     id: 3,
@@ -95,6 +96,7 @@ export const apartments: Apartment[] = [
     rooms: 1,
     area: 32,
     floor: 1,
+    amenities: ["Wi-Fi", "Кондиционер", "Телевизор"],
   },
   {
     id: 5,
@@ -123,6 +125,7 @@ export const apartments: Apartment[] = [
     rooms: 1,
     area: 40,
     floor: 7,
+    amenities: ["Wi-Fi", "Кондиционер", "Телевизор"],
   },
   {
     id: 7,
@@ -592,6 +595,7 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 3,
     area: 85,
+    amenities: ["Баня/Сауна", "Мангал/Гриль", "Гараж"],
   },
   {
     id: 42,
@@ -604,6 +608,7 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 4,
     area: 120,
+    amenities: ["Баня/Сауна", "Мангал/Гриль", "Гараж"],
   },
   {
     id: 43,
@@ -654,6 +659,7 @@ export const apartments: Apartment[] = [
     district: "Нижегородский",
     rooms: 4,
     area: 130,
+    amenities: ["Баня/Сауна", "Мангал/Гриль", "Гараж"],
   },
   {
     id: 47,
@@ -1307,6 +1313,7 @@ export const apartments: Apartment[] = [
     district: "Автозаводский",
     area: 27,
     floor: 4,
+    amenities: ["Wi-Fi", "Кухня", "Лифт", "Балкон"],
   },
   {
     id: 99,
@@ -1319,6 +1326,7 @@ export const apartments: Apartment[] = [
     district: "Автозаводский",
     area: 26,
     floor: 2,
+    amenities: ["Wi-Fi", "Кухня", "Лифт", "Балкон"],
   },
   {
     id: 100,
@@ -1331,5 +1339,6 @@ export const apartments: Apartment[] = [
     district: "Автозаводский",
     area: 29,
     floor: 7,
+    amenities: ["Wi-Fi", "Кухня", "Лифт", "Балкон"],
   },
 ];

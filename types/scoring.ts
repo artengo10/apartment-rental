@@ -1,3 +1,4 @@
+// types/scoring.ts - ОБНОВЛЕННЫЙ
 import { Apartment } from "./apartment";
 
 export interface SearchCriteria {
@@ -16,6 +17,8 @@ export interface SearchCriteria {
   parkingSpaces?: string;
 }
 
+// Убираем ScoredApartment, если он больше не нужен
+// или оставляем для обратной совместимости
 export interface ScoredApartment extends Apartment {
   relevanceScore: number;
   isPromoted?: boolean;
