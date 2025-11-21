@@ -1,28 +1,33 @@
-// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ С ПРОСТЫМИ ИКОНКАМИ
+// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ С СТАБИЛЬНЫМИ ЗАВИСИМОСТЯМИ
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Apartment } from '@/types/apartment';
 import { yandexMapsLoader } from '@/lib/yandex-maps-loader';
-import { Building, Home, Check, RefreshCw, MapPin } from 'lucide-react';
+import { RefreshCw, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const YANDEX_MAPS_API_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
 
 interface MapComponentProps {
   apartments: Apartment[];
-  onApartmentSelect?: (apartmentId: number) => void;
   selectedApartmentId?: number | null;
   highlightedApartmentId?: number | null;
 }
 
-const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, highlightedApartmentId }: MapComponentProps) => {
+const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId }: MapComponentProps) => {
   const router = useRouter();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const placemarksRef = useRef<any[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Стабилизируем зависимости с помощью useMemo
+  const stableApartments = useMemo(() => apartments, [apartments]);
+  const stableSelectedId = useMemo(() => selectedApartmentId, [selectedApartmentId]);
+  const stableHighlightedId = useMemo(() => highlightedApartmentId, [highlightedApartmentId]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -33,6 +38,22 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Функции для глобального доступа из балуна
+  useEffect(() => {
+    (window as any).openDetails = (apartmentId: number) => {
+      router.push(`/apartment/${apartmentId}`);
+    };
+
+    (window as any).makeCall = (title: string, address: string) => {
+      alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${title}\nАдрес: ${address}`);
+    };
+
+    return () => {
+      (window as any).openDetails = null;
+      (window as any).makeCall = null;
+    };
+  }, [router]);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,6 +80,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
         if (mapInstanceRef.current) {
           mapInstanceRef.current.destroy();
+          placemarksRef.current = [];
         }
 
         const defaultZoom = isMobile ? 11 : 12;
@@ -71,7 +93,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
         mapInstanceRef.current = mapInstance;
 
-        // ПРОСТЫЕ ЦВЕТНЫЕ КРУЖКИ БЕЗ ИЗОБРАЖЕНИЙ
+        // УМЕНЬШЕННЫЕ ЦВЕТНЫЕ КРУЖКИ ДЛЯ ВСЕХ УСТРОЙСТВ
         const createCustomIcon = (type: string, isSelected: boolean = false, isHighlighted: boolean = false) => {
           let fillColor;
 
@@ -83,20 +105,20 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
             fillColor = getColorByType(type);
           }
 
-          // Размеры для мобильных и десктопа
+          // ЗНАЧИТЕЛЬНО УМЕНЬШЕННЫЕ РАЗМЕРЫ ДЛЯ ВСЕХ УСТРОЙСТВ
           let size;
           if (isHighlighted) {
-            size = isMobile ? 44 : 48;
+            size = isMobile ? 28 : 32;
           } else if (isSelected) {
-            size = isMobile ? 38 : 42;
+            size = isMobile ? 24 : 28;
           } else {
-            size = isMobile ? 32 : 36;
+            size = isMobile ? 20 : 24;
           }
 
           // ПРОСТОЙ КРУЖОК БЕЗ ИКОНОК ВНУТРИ
           const circleSvg = `
             <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 2}" fill="${fillColor}" stroke="white" stroke-width="2"/>
+              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${fillColor}" stroke="white" stroke-width="1"/>
             </svg>
           `;
 
@@ -121,60 +143,70 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           }
         };
 
+        // Очищаем предыдущие метки
+        placemarksRef.current.forEach(placemark => {
+          mapInstance.geoObjects.remove(placemark);
+        });
+        placemarksRef.current = [];
+
         // Добавляем метки
-        apartments.forEach(apartment => {
-          const isSelected = selectedApartmentId === apartment.id;
-          const isHighlighted = highlightedApartmentId === apartment.id;
+        stableApartments.forEach(apartment => {
+          const isSelected = stableSelectedId === apartment.id;
+          const isHighlighted = stableHighlightedId === apartment.id;
           const iconUrl = createCustomIcon(apartment.type, isSelected, isHighlighted);
 
+          // ЗНАЧИТЕЛЬНО УМЕНЬШЕННЫЕ РАЗМЕРЫ И СМЕЩЕНИЯ ДЛЯ ВСЕХ УСТРОЙСТВ
           const iconSize = isHighlighted ?
-            (isMobile ? [44, 44] : [48, 48]) :
+            (isMobile ? [28, 28] : [32, 32]) :
             isSelected ?
-              (isMobile ? [38, 38] : [42, 42]) :
-              (isMobile ? [32, 32] : [36, 36]);
+              (isMobile ? [24, 24] : [28, 28]) :
+              (isMobile ? [20, 20] : [24, 24]);
 
           const iconOffset = isHighlighted ?
-            (isMobile ? [-22, -22] : [-24, -24]) :
+            (isMobile ? [-14, -14] : [-16, -16]) :
             isSelected ?
-              (isMobile ? [-19, -19] : [-21, -21]) :
-              (isMobile ? [-16, -16] : [-18, -18]);
+              (isMobile ? [-12, -12] : [-14, -14]) :
+              (isMobile ? [-10, -10] : [-12, -12]);
+
+          // Создаем контент для балуна
+          const balloonContent = `
+            <div style="max-width: 300px; padding: 8px;">
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}">
+                ${apartment.title} ${isHighlighted ? '⭐' : ''} ${isSelected ? '✓' : ''}
+              </div>
+              <div style="padding: 8px 0; font-size: 14px; line-height: 1.4;">
+                <p style="margin: 6px 0; font-size: 18px; color: #10b981; font-weight: bold;">${apartment.price}/сутки</p>
+                <p style="margin: 6px 0; color: #374151;"><strong>Адрес:</strong> ${apartment.address}</p>
+                <p style="margin: 6px 0; color: #6b7280;">${apartment.description}</p>
+                <div style="margin: 8px 0; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')}; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; border-radius: 2px;">
+                  <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; font-weight: 500;">
+                    ${apartment.type === 'apartment' ? 'Квартира' : apartment.type === 'house' ? 'Дом' : 'Студия'}
+                    ${isSelected ? ' (выбрана)' : ''}
+                    ${isHighlighted ? ' (показана на карте)' : ''}
+                  </span>
+                </div>
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                  <button 
+                    onclick="window.openDetails(${apartment.id})"
+                    style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
+                  >
+                    Подробнее
+                  </button>
+                  <button 
+                    onclick="window.makeCall('${apartment.title.replace(/'/g, "\\'")}', '${apartment.address.replace(/'/g, "\\'")}')"
+                    style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
+                  >
+                    Позвонить
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
 
           const placemark = new window.ymaps.Placemark(
             [apartment.lat, apartment.lng],
             {
-              balloonContentHeader: `
-                <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}">
-                  ${apartment.title} ${isHighlighted ? '⭐' : ''} ${isSelected ? '✓' : ''}
-                </div>
-              `,
-              balloonContentBody: `
-                <div style="padding: 8px 0; font-size: 14px; line-height: 1.4;">
-                  <p style="margin: 6px 0; font-size: 18px; color: #10b981; font-weight: bold;">${apartment.price}/сутки</p>
-                  <p style="margin: 6px 0; color: #374151;"><strong>Адрес:</strong> ${apartment.address}</p>
-                  <p style="margin: 6px 0; color: #6b7280;">${apartment.description}</p>
-                  <div style="margin: 8px 0; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')}; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; border-radius: 2px;">
-                    <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; font-weight: 500;">
-                      ${apartment.type === 'apartment' ? 'Квартира' : apartment.type === 'house' ? 'Дом' : 'Студия'}
-                      ${isSelected ? ' (выбрана)' : ''}
-                      ${isHighlighted ? ' (показана на карте)' : ''}
-                    </span>
-                  </div>
-                  <div style="margin-top: 12px; display: flex; gap: 8px;">
-                    <button 
-                      onclick="window.openDetails(${apartment.id})"
-                      style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
-                    >
-                      Подробнее
-                    </button>
-                    <button 
-                      onclick="window.makeCall('${apartment.title}', '${apartment.address}')"
-                      style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
-                    >
-                      Позвонить
-                    </button>
-                  </div>
-                </div>
-              `,
+              balloonContent: balloonContent,
               hintContent: `${apartment.title} - ${apartment.price}${isSelected ? ' ✓' : ''}`
             },
             {
@@ -183,41 +215,43 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
               iconImageSize: iconSize,
               iconImageOffset: iconOffset,
               balloonCloseButton: true,
-              hideIconOnBalloonOpen: false
+              hideIconOnBalloonOpen: false,
+              // ВКЛЮЧАЕМ автоматическое открытие балуна
+              openBalloonOnClick: true
             }
           );
 
+          // УПРОЩЕННЫЙ ОБРАБОТЧИК КЛИКА: только открытие балуна, без выделения
           placemark.events.add('click', (e: any) => {
             e.stopPropagation();
-            if (onApartmentSelect) {
-              onApartmentSelect(apartment.id);
-            }
-          });
-
-          placemark.events.add('dblclick', (e: any) => {
-            e.stopPropagation();
-            placemark.balloon.open();
+            // Балун открывается автоматически благодаря openBalloonOnClick: true
+            // Выделение объекта УБРАНО
           });
 
           mapInstance.geoObjects.add(placemark);
+          placemarksRef.current.push(placemark);
         });
 
-        if (highlightedApartmentId) {
-          const highlightedApartment = apartments.find(apt => apt.id === highlightedApartmentId);
+        // Центрируем карту на выделенной квартире если есть
+        if (stableHighlightedId) {
+          const highlightedApartment = stableApartments.find(apt => apt.id === stableHighlightedId);
           if (highlightedApartment) {
             mapInstance.setCenter([highlightedApartment.lat, highlightedApartment.lng], isMobile ? 13 : 14, {
               duration: 500
             });
+
+            // Находим и открываем балун выделенной квартиры
+            setTimeout(() => {
+              const highlightedPlacemark = placemarksRef.current.find(pm =>
+                pm.geometry.getCoordinates()[0] === highlightedApartment.lat &&
+                pm.geometry.getCoordinates()[1] === highlightedApartment.lng
+              );
+              if (highlightedPlacemark) {
+                highlightedPlacemark.balloon.open();
+              }
+            }, 600);
           }
         }
-
-        (window as any).openDetails = (apartmentId: number) => {
-          router.push(`/apartment/${apartmentId}`);
-        };
-
-        (window as any).makeCall = (title: string, address: string) => {
-          alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${title}\nАдрес: ${address}`);
-        };
 
         setMapError(null);
         setIsLoading(false);
@@ -235,10 +269,9 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
       if (mapInstanceRef.current) {
         mapInstanceRef.current.destroy();
       }
-      (window as any).openDetails = null;
-      (window as any).makeCall = null;
+      placemarksRef.current = [];
     };
-  }, [apartments, onApartmentSelect, selectedApartmentId, highlightedApartmentId, router, isMobile]);
+  }, [stableApartments, stableSelectedId, stableHighlightedId, isMobile]);
 
   if (mapError) {
     return (
@@ -265,70 +298,31 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
   return (
     <div className="w-full h-full">
-      {/* Легенда БЕЗ РАЗДЕЛА "КАК ПОЛЬЗОВАТЬСЯ" */}
+      {/* Легенда С ПРОСТЫМИ КРУЖКАМИ ДЛЯ ВСЕХ УСТРОЙСТВ */}
       <div className="bg-white border-2 border-black rounded-lg p-3 mb-3 shadow-sm">
         <h3 className="text-base font-semibold mb-2 text-center sm:text-left">Обозначения:</h3>
 
-        {/* Мобильная легенда */}
-        <div className="grid grid-cols-2 gap-2 mb-3 sm:hidden">
+        {/* УНИФИЦИРОВАННАЯ ЛЕГЕНДА ДЛЯ ВСЕХ УСТРОЙСТВ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
             <span className="text-xs text-gray-700">Квартиры</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
             <span className="text-xs text-gray-700">Дома</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-purple-600 rounded-full flex-shrink-0"></div>
+            <div className="w-3 h-3 bg-purple-600 rounded-full flex-shrink-0"></div>
             <span className="text-xs text-gray-700">Студии</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-orange-500 rounded-full flex-shrink-0"></div>
+            <div className="w-3 h-3 bg-orange-500 rounded-full flex-shrink-0"></div>
             <span className="text-xs text-gray-700">Выбранные</span>
           </div>
         </div>
 
-        {/* Десктопная легенда */}
-        <div className="hidden sm:grid grid-cols-4 gap-3 mb-3">
-          <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <Building className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-medium text-blue-700 text-sm">Квартиры</div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
-            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <Home className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-medium text-green-700 text-sm">Дома</div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 p-2 bg-purple-50 rounded-lg">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-              <Building className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-medium text-purple-700 text-sm">Студии</div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 p-2 bg-orange-50 rounded-lg">
-            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-              <Check className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-medium text-orange-700 text-sm">Выбранные</div>
-            </div>
-          </div>
-        </div>
-
-        {highlightedApartmentId && (
+        {stableHighlightedId && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
             <p className="text-xs text-blue-800 font-medium flex items-center gap-1">
               <MapPin className="w-3 h-3" />
@@ -337,15 +331,13 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           </div>
         )}
 
-        {selectedApartmentId && (
+        {stableSelectedId && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
             <p className="text-xs text-orange-800 font-medium">
               ✅ Выбран объект в списке
             </p>
           </div>
         )}
-
-        {/* УБРАН РАЗДЕЛ "КАК ПОЛЬЗОВАТЬСЯ" */}
       </div>
 
       {isLoading && (

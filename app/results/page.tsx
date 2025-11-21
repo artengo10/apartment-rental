@@ -1,4 +1,4 @@
-// app/results/page.tsx - ИСПРАВЛЕННЫЙ ДЛЯ МОБИЛЬНЫХ
+// app/results/page.tsx - ИСПРАВЛЕННЫЙ ДЛЯ МОБИЛЬНЫХ (УМЕНЬШЕННЫЕ КНОПКИ И ТЕКСТ)
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import MapComponent from '@/components/MapComponent';
@@ -105,13 +105,13 @@ export default function ResultsPage() {
                 <div className="mb-6 flex justify-between items-center">
                     <div>
                         {/* УМЕНЬШЕННЫЙ ТЕКСТ ДЛЯ МОБИЛЬНЫХ */}
-                        <h2 className="text-xl sm:text-2xl font-bold mb-2 whitespace-nowrap">
+                        <h2 className="text-lg sm:text-2xl font-bold mb-2 whitespace-nowrap">
                             {filteredApartments.length > 0 ?
                                 `Найдено ${filteredApartments.length} вариантов` :
                                 'Найдено 0 вариантов'
                             }
                         </h2>
-                        <p className="text-gray-600 text-sm sm:text-base">
+                        <p className="text-gray-600 text-xs sm:text-base">
                             {selectedTypeText} • Нижний Новгород
                         </p>
                         {highlightedApartmentId && (
@@ -129,17 +129,17 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    {/* УВЕЛИЧЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
+                    {/* УМЕНЬШЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowFilterModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs h-fit min-h-[40px] sm:min-h-[32px] flex items-center whitespace-nowrap"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-xs sm:text-xs h-fit min-h-[36px] sm:min-h-[32px] flex items-center whitespace-nowrap"
                         >
                             Фильтр
                         </button>
                         <Link
                             href="/"
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs h-fit min-h-[40px] sm:min-h-[32px] flex items-center whitespace-nowrap"
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-xs sm:text-xs h-fit min-h-[36px] sm:min-h-[32px] flex items-center whitespace-nowrap"
                         >
                             Новый поиск
                         </Link>

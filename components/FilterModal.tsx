@@ -204,65 +204,7 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
                             </div>
                         </div>
                     )}
-
-                    {/* Дополнительные параметры для домов */}
-                    {filters.propertyType === 'house' && (
-                        <div>
-                            <h4 className="font-semibold mb-3">Дополнительные параметры</h4>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm text-gray-600 mb-1">Площадь дома (м²)</label>
-                                    <input
-                                        type="number"
-                                        value={filters.houseArea || ''}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, houseArea: e.target.value }))}
-                                        placeholder="Например: 120"
-                                        className="w-full p-2 border border-gray-300 rounded-lg"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm text-gray-600 mb-2">Этажность</label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {['1', '2', '3+'].map(floors => (
-                                            <button
-                                                key={floors}
-                                                onClick={() => setFilters(prev => ({ ...prev, houseFloors: floors }))}
-                                                className={`p-3 border-2 rounded-lg transition-all ${filters.houseFloors === floors
-                                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                                        : 'border-gray-300 hover:border-green-500'
-                                                    }`}
-                                            >
-                                                {floors} этаж{floors === '1' ? '' : 'а'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { key: 'hasGarden', label: '🏡 Участок' },
-                                        { key: 'hasGarage', label: '🚗 Гараж' },
-                                        { key: 'hasSauna', label: '🧖 Баня/Сауна' },
-                                    ].map((item) => (
-                                        <button
-                                            key={item.key}
-                                            onClick={() => setFilters(prev => ({
-                                                ...prev,
-                                                [item.key]: !prev[item.key as keyof typeof prev]
-                                            }))}
-                                            className={`p-3 border-2 rounded-lg transition-all ${filters[item.key as keyof typeof filters]
-                                                    ? 'border-green-500 bg-green-50 text-green-700'
-                                                    : 'border-gray-300 hover:border-green-500'
-                                                }`}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    
                 </div>
 
                 <div className="p-6 border-t bg-gray-50 flex justify-between">
