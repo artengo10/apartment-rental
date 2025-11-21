@@ -1,6 +1,6 @@
-// app/results/page.tsx - ИСПРАВЛЕННЫЙ БАГ С ВЫДЕЛЕНИЕМ НА КАРТЕ
+// app/results/page.tsx - ИСПРАВЛЕННЫЙ ДЛЯ МОБИЛЬНЫХ
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import MapComponent from '@/components/MapComponent';
 import ApartmentList from '@/components/ApartmentList';
 import FilterModal from '@/components/FilterModal';
@@ -16,6 +16,18 @@ export default function ResultsPage() {
     const [selectedApartmentId, setSelectedApartmentId] = useState<number | null>(null);
     const [highlightedApartmentId, setHighlightedApartmentId] = useState<number | null>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         const criteria = getSearchCriteria();
@@ -25,17 +37,24 @@ export default function ResultsPage() {
             const filtered = filterApartments(apartments, criteria);
             setFilteredApartments(filtered);
         } else {
-            // Если нет критериев, показываем все
             setFilteredApartments(apartments);
         }
     }, []);
 
     const handleShowOnMap = (apartmentId: number) => {
-        // УБИРАЕМ setTimeout - выделение остается пока пользователь не снимет его вручную
-        // Если нажимаем на ту же карточку - снимаем выделение, иначе выделяем новую
         setHighlightedApartmentId(current =>
             current === apartmentId ? null : apartmentId
         );
+
+        // Скролл к карте на мобилке
+        if (isMobile && mapContainerRef.current) {
+            setTimeout(() => {
+                mapContainerRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
+        }
     };
 
     const handleFilterApply = (newCriteria: SearchCriteria) => {
@@ -43,8 +62,6 @@ export default function ResultsPage() {
         const filtered = filterApartments(apartments, newCriteria);
         setFilteredApartments(filtered);
         setShowFilterModal(false);
-
-        // Сохраняем в sessionStorage
         sessionStorage.setItem('searchCriteria', JSON.stringify(newCriteria));
     };
 
@@ -52,7 +69,6 @@ export default function ResultsPage() {
         setSelectedApartmentId(apartmentId);
     };
 
-    // Функция для сброса выделения
     const handleResetHighlight = () => {
         setHighlightedApartmentId(null);
     };
@@ -63,7 +79,7 @@ export default function ResultsPage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
-            {/* ХЕДЕР */}
+            {/* ХЕДЕР С УВЕЛИЧЕННЫМИ КНОПКАМИ ДЛЯ МОБИЛЬНЫХ */}
             <header className="bg-primary text-primary-foreground px-3 py-2 sm:px-6 sm:py-4 shadow-sm border-b border-black">
                 <div className="container mx-auto flex justify-between items-center">
                     <Link href="/" className="text-left hover:opacity-80 transition-opacity">
@@ -74,10 +90,11 @@ export default function ResultsPage() {
                     </Link>
 
                     <nav className="flex gap-2">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded-md font-medium transition-colors text-xs min-h-[32px]">
+                        {/* УВЕЛИЧЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-2 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs min-h-[40px] sm:min-h-[32px]">
                             Войти
                         </button>
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors text-xs border border-black min-h-[32px]">
+                        <button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-2 py-2 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs border border-black min-h-[40px] sm:min-h-[32px]">
                             Добавить
                         </button>
                     </nav>
@@ -87,13 +104,14 @@ export default function ResultsPage() {
             <main className="flex-1 container mx-auto px-3 sm:px-6 py-6 flex flex-col">
                 <div className="mb-6 flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-bold mb-2">
+                        {/* УМЕНЬШЕННЫЙ ТЕКСТ ДЛЯ МОБИЛЬНЫХ */}
+                        <h2 className="text-xl sm:text-2xl font-bold mb-2 whitespace-nowrap">
                             {filteredApartments.length > 0 ?
                                 `Найдено ${filteredApartments.length} вариантов` :
                                 'Найдено 0 вариантов'
                             }
                         </h2>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 text-sm sm:text-base">
                             {selectedTypeText} • Нижний Новгород
                         </p>
                         {highlightedApartmentId && (
@@ -105,23 +123,23 @@ export default function ResultsPage() {
                                     onClick={handleResetHighlight}
                                     className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                                 >
-                                    Сбросить выделение
+                                    Сбросить
                                 </button>
                             </div>
                         )}
                     </div>
 
-                    {/* КНОПКИ ФИЛЬТР И НОВЫЙ ПОИСК */}
+                    {/* УВЕЛИЧЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowFilterModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-xs h-fit min-h-[32px] flex items-center"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs h-fit min-h-[40px] sm:min-h-[32px] flex items-center whitespace-nowrap"
                         >
                             Фильтр
                         </button>
                         <Link
                             href="/"
-                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-xs h-fit min-h-[32px] flex items-center"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs h-fit min-h-[40px] sm:min-h-[32px] flex items-center whitespace-nowrap"
                         >
                             Новый поиск
                         </Link>
@@ -129,7 +147,7 @@ export default function ResultsPage() {
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-6 flex-grow min-h-0">
-                    <div className="w-full xl:w-7/12 h-full">
+                    <div ref={mapContainerRef} className="w-full xl:w-7/12 h-full">
                         <MapComponent
                             apartments={filteredApartments}
                             onApartmentSelect={handleApartmentSelect}
@@ -151,7 +169,6 @@ export default function ResultsPage() {
                 </div>
             </main>
 
-            {/* Модальное окно фильтров */}
             {showFilterModal && (
                 <FilterModal
                     searchCriteria={searchCriteria}

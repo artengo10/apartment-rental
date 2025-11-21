@@ -1,4 +1,4 @@
-// components/ApartmentList.tsx - ИСПРАВЛЕННЫЙ
+// components/ApartmentList.tsx - ИСПРАВЛЕННЫЙ С ОДИНАКОВЫМИ ФОТОГРАФИЯМИ
 'use client';
 import { Apartment } from '@/types/apartment';
 import { useState, useEffect, useCallback } from 'react';
@@ -15,7 +15,6 @@ interface ApartmentListProps {
     onResetHighlight?: () => void;
 }
 
-// Функция для генерации случайных данных об отзывах на основе ID
 const generateSellerReviews = (apartmentId: number) => {
     const seed = apartmentId * 12345;
     const rating = 4 + (seed % 100) / 100;
@@ -27,7 +26,6 @@ const generateSellerReviews = (apartmentId: number) => {
     };
 };
 
-// Заглушки для фотографий по типам жилья
 const getPlaceholderImage = (type: string) => {
     switch (type) {
         case 'apartment':
@@ -54,7 +52,6 @@ const ApartmentList = ({
     const [itemsPerPage, setItemsPerPage] = useState(6);
     const [isMobile, setIsMobile] = useState(false);
 
-    // Адаптивное количество элементов
     useEffect(() => {
         const updateLayout = () => {
             const mobile = window.innerWidth < 768;
@@ -67,12 +64,10 @@ const ApartmentList = ({
         return () => window.removeEventListener('resize', updateLayout);
     }, []);
 
-    // Сброс страницы при изменении фильтров
     useEffect(() => {
         setCurrentPage(1);
     }, [apartments.length]);
 
-    // Обработчики действий
     const handleCall = useCallback((apartment: Apartment, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -107,7 +102,6 @@ const ApartmentList = ({
     const nextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
     const prevPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
 
-    // Функция для отображения номеров страниц с эллипсисом
     const renderPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 7;
@@ -183,7 +177,6 @@ const ApartmentList = ({
 
     return (
         <div className="border-2 border-black rounded-lg p-2 sm:p-4 bg-white h-full flex flex-col">
-            {/* Заголовок */}
             <div className="flex justify-between items-center mb-3 sm:mb-6 flex-shrink-0">
                 <div className="flex-1">
                     <h3 className="text-base sm:text-xl font-bold">Найдено вариантов</h3>
@@ -197,12 +190,11 @@ const ApartmentList = ({
                         className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded-full transition-colors ml-2"
                     >
                         <X className="w-3 h-3" />
-                        Сбросить выделение
+                        Сбросить
                     </button>
                 )}
             </div>
 
-            {/* Сетка карточек */}
             <div className="flex-grow mb-3 sm:mb-6 min-h-0 overflow-auto">
                 <div className="grid grid-cols-2 gap-2 sm:gap-4 h-full auto-rows-fr">
                     {currentApartments.map((apartment) => {
@@ -226,8 +218,8 @@ const ApartmentList = ({
                                 `}
                                 onClick={() => handleCardClick(apartment)}
                             >
-                                {/* ФОТОГРАФИЯ - 75% высоты карточки */}
-                                <div className="relative h-[75%] overflow-hidden bg-gray-200">
+                                {/* ФОТОГРАФИЯ С ФИКСИРОВАННЫМ РАЗМЕРОМ */}
+                                <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
                                     {apartment.photos && apartment.photos.length > 0 ? (
                                         <Image
                                             src={mainPhoto}
@@ -248,7 +240,6 @@ const ApartmentList = ({
                                         </div>
                                     )}
 
-                                    {/* Бейдж типа жилья */}
                                     <div className="absolute top-2 left-2">
                                         <span className={`
                                             px-2 py-1 rounded-full text-xs font-bold text-white
@@ -260,7 +251,6 @@ const ApartmentList = ({
                                         </span>
                                     </div>
 
-                                    {/* Промо-бейдж */}
                                     {(apartment as any).isPromoted && (
                                         <div className="absolute top-2 right-2">
                                             <span className="px-2 py-1 bg-yellow-500 text-white rounded-full text-xs font-bold">
@@ -269,7 +259,6 @@ const ApartmentList = ({
                                         </div>
                                     )}
 
-                                    {/* Бейдж выделения на карте */}
                                     {isHighlighted && (
                                         <div className="absolute bottom-2 left-2">
                                             <span className="px-2 py-1 bg-blue-500 text-white rounded-full text-xs font-bold flex items-center gap-1">
@@ -280,16 +269,12 @@ const ApartmentList = ({
                                     )}
                                 </div>
 
-                                {/* НИЖНЯЯ ЧАСТЬ - 25% высоты карточки */}
                                 <div className="flex-1 p-3 flex flex-col justify-between">
-                                    {/* Верхняя строка: заголовок */}
                                     <h4 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 mb-2">
                                         {apartment.title}
                                     </h4>
 
-                                    {/* Средняя строка: цена и отзывы */}
                                     <div className="flex justify-between items-center mb-2">
-                                        {/* Левая часть: цена */}
                                         <div className="flex-1">
                                             <span className="font-bold text-green-600 text-lg">
                                                 {apartment.price}
@@ -297,7 +282,6 @@ const ApartmentList = ({
                                             <span className="text-gray-500 text-xs ml-1">/ сутки</span>
                                         </div>
 
-                                        {/* Правая часть: отзывы */}
                                         <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full">
                                             <MessageCircle className="w-3 h-3 text-yellow-600" />
                                             <span className="text-xs font-bold text-yellow-700">
@@ -309,9 +293,7 @@ const ApartmentList = ({
                                         </div>
                                     </div>
 
-                                    {/* Нижняя строка: адрес и кнопка */}
                                     <div className="flex justify-between items-center">
-                                        {/* Левая часть: адрес */}
                                         <div className="flex items-center gap-1 flex-1 min-w-0">
                                             <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                             <p className="text-xs text-gray-600 truncate" title={apartment.address}>
@@ -319,10 +301,10 @@ const ApartmentList = ({
                                             </p>
                                         </div>
 
-                                        {/* Правая часть: кнопка показа на карте */}
+                                        {/* КНОПКА КАРТЫ С ОТСТУПОМ СВЕРХУ НА ДЕСКТОПЕ */}
                                         <button
                                             onClick={(e) => handleShowOnMap(apartment.id, e)}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-2 flex-shrink-0
+                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-2 flex-shrink-0 sm:mt-1
                                                 ${isHighlighted
                                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                                                     : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
@@ -335,7 +317,6 @@ const ApartmentList = ({
                                         </button>
                                     </div>
 
-                                    {/* Дополнительная информация (только на десктопе) */}
                                     <div className="hidden sm:flex flex-wrap gap-1 mt-2">
                                         {apartment.rooms && (
                                             <span className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
@@ -360,7 +341,6 @@ const ApartmentList = ({
                 </div>
             </div>
 
-            {/* ПАГИНАЦИЯ */}
             <div className="flex-shrink-0">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                     <div className="text-xs text-gray-600 order-2 sm:order-1 text-center">

@@ -1,4 +1,4 @@
-// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ
+// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ С ПРОСТЫМИ ИКОНКАМИ
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -24,7 +24,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Определяем мобильное устройство
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -47,7 +46,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           throw new Error('Yandex Maps API key not found. Please check your environment variables.');
         }
 
-        // Добавляем таймаут для загрузки карт
         const loadPromise = yandexMapsLoader.load(YANDEX_MAPS_API_KEY);
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Yandex Maps loading timeout')), 10000)
@@ -59,12 +57,10 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           return;
         }
 
-        // Если карта уже существует, уничтожаем её
         if (mapInstanceRef.current) {
           mapInstanceRef.current.destroy();
         }
 
-        // Устанавливаем разный зум для мобильных и десктопа
         const defaultZoom = isMobile ? 11 : 12;
 
         const mapInstance = new window.ymaps.Map(mapRef.current, {
@@ -75,72 +71,36 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
         mapInstanceRef.current = mapInstance;
 
-        // Функция для создания SVG иконок
+        // ПРОСТЫЕ ЦВЕТНЫЕ КРУЖКИ БЕЗ ИЗОБРАЖЕНИЙ
         const createCustomIcon = (type: string, isSelected: boolean = false, isHighlighted: boolean = false) => {
-          const apartmentIconSvg = `
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="3" width="18" height="18" rx="1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <rect x="6" y="6" width="4" height="4" fill="white"/>
-              <rect x="14" y="6" width="4" height="4" fill="white"/>
-              <rect x="6" y="14" width="4" height="4" fill="white"/>
-              <rect x="14" y="14" width="4" height="4" fill="white"/>
-              <line x1="10" y1="6" x2="10" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-              <line x1="6" y1="10" x2="18" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          `;
-
-          const houseIconSvg = `
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" 
-                    stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" 
-                    stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          `;
-
-          let iconSvg;
-          switch (type) {
-            case 'apartment':
-            case 'studio':
-              iconSvg = apartmentIconSvg;
-              break;
-            case 'house':
-              iconSvg = houseIconSvg;
-              break;
-            default:
-              iconSvg = apartmentIconSvg;
-          }
-
-          // Размеры иконок для мобильных и десктопа
-          let size, strokeWidth, fillColor;
+          let fillColor;
 
           if (isHighlighted) {
-            // Выделенная метка
-            size = isMobile ? 44 : 48;
-            strokeWidth = isMobile ? 2.5 : 3;
             fillColor = getHighlightColorByType(type);
           } else if (isSelected) {
-            // Выбранная метка - оранжевый
-            size = isMobile ? 38 : 42;
-            strokeWidth = isMobile ? 2 : 2.5;
             fillColor = '#F59E0B';
           } else {
-            // Обычная метка
-            size = isMobile ? 32 : 36;
-            strokeWidth = isMobile ? 1.5 : 2;
             fillColor = getColorByType(type);
           }
 
-          const coloredSvg = `
+          // Размеры для мобильных и десктопа
+          let size;
+          if (isHighlighted) {
+            size = isMobile ? 44 : 48;
+          } else if (isSelected) {
+            size = isMobile ? 38 : 42;
+          } else {
+            size = isMobile ? 32 : 36;
+          }
+
+          // ПРОСТОЙ КРУЖОК БЕЗ ИКОНОК ВНУТРИ
+          const circleSvg = `
             <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 2}" fill="${fillColor}" stroke="white" stroke-width="${strokeWidth}"/>
-              <g transform="translate(${(size - 22) / 2}, ${(size - 22) / 2})">
-                ${iconSvg}
-              </g>
+              <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 2}" fill="${fillColor}" stroke="white" stroke-width="2"/>
             </svg>
           `;
 
-          return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(coloredSvg)));
+          return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(circleSvg)));
         };
 
         const getColorByType = (type: string) => {
@@ -167,7 +127,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           const isHighlighted = highlightedApartmentId === apartment.id;
           const iconUrl = createCustomIcon(apartment.type, isSelected, isHighlighted);
 
-          // Расчет смещения для мобильных и десктопа
           const iconSize = isHighlighted ?
             (isMobile ? [44, 44] : [48, 48]) :
             isSelected ?
@@ -228,7 +187,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
             }
           );
 
-          // Обработчик клика на метку
           placemark.events.add('click', (e: any) => {
             e.stopPropagation();
             if (onApartmentSelect) {
@@ -244,7 +202,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           mapInstance.geoObjects.add(placemark);
         });
 
-        // Центрируем карту на выделенной квартире
         if (highlightedApartmentId) {
           const highlightedApartment = apartments.find(apt => apt.id === highlightedApartmentId);
           if (highlightedApartment) {
@@ -254,7 +211,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
           }
         }
 
-        // Глобальные функции для кнопок в балуне
         (window as any).openDetails = (apartmentId: number) => {
           router.push(`/apartment/${apartmentId}`);
         };
@@ -309,7 +265,7 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
 
   return (
     <div className="w-full h-full">
-      {/* Легенда */}
+      {/* Легенда БЕЗ РАЗДЕЛА "КАК ПОЛЬЗОВАТЬСЯ" */}
       <div className="bg-white border-2 border-black rounded-lg p-3 mb-3 shadow-sm">
         <h3 className="text-base font-semibold mb-2 text-center sm:text-left">Обозначения:</h3>
 
@@ -382,24 +338,16 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         )}
 
         {selectedApartmentId && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mb-2">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
             <p className="text-xs text-orange-800 font-medium">
               ✅ Выбран объект в списке
             </p>
           </div>
         )}
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-          <p className="text-xs text-yellow-800 font-medium mb-1">💡 Как пользоваться:</p>
-          <ul className="text-xs text-yellow-700 list-disc list-inside space-y-0.5">
-            <li><strong>Клик</strong> - выделить в списке</li>
-            <li><strong>Двойной клик</strong> - подробности</li>
-            <li><strong>Кнопка "🗺️"</strong> - показать на карте</li>
-          </ul>
-        </div>
+        {/* УБРАН РАЗДЕЛ "КАК ПОЛЬЗОВАТЬСЯ" */}
       </div>
 
-      {/* Индикатор загрузки */}
       {isLoading && (
         <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg border-2 border-black mb-4">
           <div className="text-center">
@@ -409,7 +357,6 @@ const MapComponent = ({ apartments, onApartmentSelect, selectedApartmentId, high
         </div>
       )}
 
-      {/* Карта с адаптивной высотой */}
       <div
         ref={mapRef}
         className={`w-full rounded-lg border-2 border-black shadow-sm ${isLoading ? 'hidden' : 'block'
