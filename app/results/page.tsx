@@ -1,4 +1,4 @@
-// app/results/page.tsx - ИСПРАВЛЕННЫЙ ДЛЯ МОБИЛЬНЫХ (УМЕНЬШЕННЫЕ КНОПКИ И ТЕКСТ)
+// app/results/page.tsx - ИСПРАВЛЕННЫЙ БЕЗ onApartmentSelect
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import MapComponent from '@/components/MapComponent';
@@ -63,10 +63,6 @@ export default function ResultsPage() {
         setFilteredApartments(filtered);
         setShowFilterModal(false);
         sessionStorage.setItem('searchCriteria', JSON.stringify(newCriteria));
-    };
-
-    const handleApartmentSelect = (apartmentId: number) => {
-        setSelectedApartmentId(apartmentId);
     };
 
     const handleResetHighlight = () => {
@@ -150,7 +146,6 @@ export default function ResultsPage() {
                     <div ref={mapContainerRef} className="w-full xl:w-7/12 h-full">
                         <MapComponent
                             apartments={filteredApartments}
-                            onApartmentSelect={handleApartmentSelect}
                             selectedApartmentId={selectedApartmentId}
                             highlightedApartmentId={highlightedApartmentId}
                         />
@@ -161,7 +156,6 @@ export default function ResultsPage() {
                             apartments={filteredApartments}
                             selectedApartmentId={selectedApartmentId}
                             highlightedApartmentId={highlightedApartmentId}
-                            onApartmentSelect={handleApartmentSelect}
                             onShowOnMap={handleShowOnMap}
                             onResetHighlight={handleResetHighlight}
                         />
