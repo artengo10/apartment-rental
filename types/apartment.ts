@@ -595,6 +595,9 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 3,
     area: 85,
+    photos: [
+      "/apartments/41/main.jpg", // ГЛАВНАЯ фотография для превью
+    ],
     amenities: ["Баня/Сауна", "Мангал/Гриль", "Гараж"],
   },
   {
@@ -608,6 +611,9 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 4,
     area: 120,
+    photos: [
+      "/apartments/42/main.jpg", // ГЛАВНАЯ фотография для превью
+    ],
     amenities: ["Баня/Сауна", "Мангал/Гриль", "Гараж"],
   },
   {
@@ -621,6 +627,9 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 3,
     area: 95,
+    photos: [
+      "/apartments/43/main.jpg", // ГЛАВНАЯ фотография для превью
+    ],
   },
   {
     id: 44,
@@ -633,6 +642,9 @@ export const apartments: Apartment[] = [
     district: "Сормовский",
     rooms: 5,
     area: 140,
+    photos: [
+      "/apartments/44/main.jpg", // ГЛАВНАЯ фотография для превью
+    ],
   },
 
   // Нижегородский район (4 дома)
