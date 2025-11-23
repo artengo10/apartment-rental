@@ -8,9 +8,21 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, phone, password, role } = await request.json();
+    console.log("=== REGISTRATION START ===");
 
-    // Проверяем, существует ли уже пользователь с таким email
+    const body = await request.json();
+    console.log("Request body:", body);
+
+    const { name, email, phone, password, role } = body;
+
+    if (!name || !email || !phone || !password) {
+      return NextResponse.json(
+        { error: "Все поля обязательны для заполнения" },
+        { status: 400 }
+      );
+    }
+
+    // Проверяем существование пользователя
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -27,7 +39,9 @@ export async function POST(request: NextRequest) {
 
     // Генерируем код подтверждения
     const verificationCode = generateVerificationCode();
-    const codeExpires = new Date(Date.now() + 10 * 60 * 1000); // Код действует 10 минут
+    const codeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+
+    console.log("Creating user...");
 
     // Создаем пользователя
     const user = await prisma.user.create({
@@ -36,34 +50,38 @@ export async function POST(request: NextRequest) {
         email,
         phone,
         password: hashedPassword,
-        role,
+        role: role || "TENANT",
         verificationCode,
         codeExpires,
+        isVerified: false, // Пока не подтвержден
       },
     });
 
-    // Отправляем код подтверждения на email
+    console.log("User created successfully:", {
+      id: user.id,
+      email: user.email,
+    });
+
+    // Отправляем код подтверждения (в консоль для разработки)
     await sendVerificationCode(email, verificationCode);
 
-    // Возвращаем ответ без пароля и кода
-    const {
-      password: _,
-      verificationCode: __,
-      codeExpires: ___,
-      ...userWithoutSensitiveData
-    } = user;
+    const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(
       {
         message: "Код подтверждения отправлен на ваш email",
-        user: userWithoutSensitiveData,
+        user: userWithoutPassword,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("REGISTRATION ERROR:", error);
+
     return NextResponse.json(
-      { error: "Ошибка при регистрации" },
+      {
+        error: "Внутренняя ошибка сервера",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
