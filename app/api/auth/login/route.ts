@@ -6,6 +6,17 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
+    // Проверяем подключение к базе данных
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError) {
+      console.error("Database connection error:", dbError);
+      return NextResponse.json(
+        { error: "Database connection failed" },
+        { status: 500 }
+      );
+    }
+
     // Находим пользователя по email
     const user = await prisma.user.findUnique({
       where: { email },
