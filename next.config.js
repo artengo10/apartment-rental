@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // SWC минификация включена по умолчанию в Next.js 16, поэтому убираем swcMinify
-  // Внешние пакеты для серверных компонентов
-  serverExternalPackages: ["bcryptjs", "jsonwebtoken"],
-
+  experimental: {
+    // Уберите serverExternalPackages если есть
+  },
   // Дополнительные настройки для API routes
   async headers() {
     return [

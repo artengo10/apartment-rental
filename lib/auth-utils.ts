@@ -38,12 +38,47 @@ export function verifyToken(token: string): { userId: number } {
   return jwt.verify(token, jwtSecret) as { userId: number };
 }
 
-// Заглушка для отправки email (в разработке)
+// Реальная отправка verification code
 export async function sendVerificationCode(
   email: string,
   code: string
 ): Promise<void> {
-  // В реальном приложении здесь будет интеграция с email сервисом
-  console.log(`📧 Verification code for ${email}: ${code}`);
-  // Для разработки просто выводим код в консоль
+  try {
+    console.log(`📧 Sending verification code to: ${email}`);
+
+    const emailResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: email,
+        subject: 'Код подтверждения для регистрации',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Подтверждение регистрации</h2>
+            <p>Ваш код подтверждения для завершения регистрации:</p>
+            <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+              ${code}
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              Код действителен в течение 10 минут.<br>
+              Если вы не регистрировались на нашем сайте, проигнорируйте это письмо.
+            </p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      throw new Error(`Email sending failed: ${errorData.error}`);
+    }
+
+    console.log(`✅ Verification code sent to: ${email}`);
+
+  } catch (error) {
+    console.error('❌ Error sending verification email:', error);
+    throw new Error('Не удалось отправить код подтверждения');
+  }
 }

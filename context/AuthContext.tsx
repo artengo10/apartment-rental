@@ -1,4 +1,5 @@
 'use client';
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
@@ -32,13 +33,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isClient, setIsClient] = useState(false);
 
-    // Проверяем токен при загрузке приложения
     useEffect(() => {
+        setIsClient(true);
         checkAuth();
     }, []);
 
     const checkAuth = async () => {
+        if (!isClient) return;
+
         try {
             const token = localStorage.getItem('auth_token');
             if (!token) {
@@ -56,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userData = await response.json();
                 setUser(userData);
             } else {
-                // Если токен невалидный, удаляем его
                 localStorage.removeItem('auth_token');
             }
         } catch (error) {

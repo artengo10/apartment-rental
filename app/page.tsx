@@ -1,11 +1,36 @@
-// app/page.tsx - ОБНОВЛЕННЫЙ С НОВОЙ ЛОГИКОЙ
 'use client';
 
+import { useEffect, useState } from 'react';
 import SmartSearch from '@/components/SmartSearch';
 import Link from 'next/link';
 import Header from '@/components/Header';
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // На сервере показываем простой контент без использования auth
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-2 sm:px-6 py-4 sm:py-12">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
+              Найдем идеальное жилье для вас
+            </h2>
+          </div>
+          <div className="px-1 sm:px-0">
+            <div className="animate-pulse">Загрузка поиска...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // На клиенте показываем полный контент
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />

@@ -1,5 +1,5 @@
-// app/results/page.tsx - ИСПРАВЛЕННЫЙ БЕЗ onApartmentSelect
 'use client';
+
 import { useEffect, useState, useRef } from 'react';
 import MapComponent from '@/components/MapComponent';
 import ApartmentList from '@/components/ApartmentList';
@@ -12,6 +12,7 @@ import { filterApartments } from '@/lib/filter-apartments';
 import Header from '@/components/Header';
 
 export default function ResultsPage() {
+    const [isClient, setIsClient] = useState(false);
     const [filteredApartments, setFilteredApartments] = useState(apartments);
     const [searchCriteria, setSearchCriteria] = useState<SearchCriteria | null>(null);
     const [selectedApartmentId, setSelectedApartmentId] = useState<number | null>(null);
@@ -21,6 +22,8 @@ export default function ResultsPage() {
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        setIsClient(true);
+
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768);
         };
@@ -31,6 +34,8 @@ export default function ResultsPage() {
     }, []);
 
     useEffect(() => {
+        if (!isClient) return;
+
         const criteria = getSearchCriteria();
         setSearchCriteria(criteria);
 
@@ -40,7 +45,7 @@ export default function ResultsPage() {
         } else {
             setFilteredApartments(apartments);
         }
-    }, []);
+    }, [isClient]);
 
     const handleShowOnMap = (apartmentId: number) => {
         setHighlightedApartmentId(current =>
@@ -70,19 +75,32 @@ export default function ResultsPage() {
         setHighlightedApartmentId(null);
     };
 
+    // На сервере показываем простой контент
+    if (!isClient) {
+        return (
+            <div className="min-h-screen flex flex-col bg-background">
+                <div className="container mx-auto px-3 sm:px-6 py-6">
+                    <div className="mb-6">
+                        <h2 className="text-lg sm:text-2xl font-bold mb-2">Загрузка результатов...</h2>
+                        <p className="text-gray-600 text-xs sm:text-base">Нижний Новгород</p>
+                    </div>
+                    <div className="animate-pulse h-64 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
     const selectedTypeText = searchCriteria?.propertyType === 'apartment' ? 'Квартиры' :
         searchCriteria?.propertyType === 'house' ? 'Дома' :
             searchCriteria?.propertyType === 'studio' ? 'Студии' : 'Все варианты';
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
-            
             <Header />
 
             <main className="flex-1 container mx-auto px-3 sm:px-6 py-6 flex flex-col">
                 <div className="mb-6 flex justify-between items-center">
                     <div>
-                        {/* УМЕНЬШЕННЫЙ ТЕКСТ ДЛЯ МОБИЛЬНЫХ */}
                         <h2 className="text-lg sm:text-2xl font-bold mb-2 whitespace-nowrap">
                             {filteredApartments.length > 0 ?
                                 `Найдено ${filteredApartments.length} вариантов` :
@@ -107,7 +125,6 @@ export default function ResultsPage() {
                         )}
                     </div>
 
-                    {/* УМЕНЬШЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowFilterModal(true)}
