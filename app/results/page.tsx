@@ -9,6 +9,7 @@ import { apartments } from '@/types/apartment';
 import { getSearchCriteria } from '@/lib/search-utils';
 import { SearchCriteria } from '@/types/scoring';
 import { filterApartments } from '@/lib/filter-apartments';
+import Header from '@/components/Header';
 
 export default function ResultsPage() {
     const [filteredApartments, setFilteredApartments] = useState(apartments);
@@ -75,27 +76,8 @@ export default function ResultsPage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
-            {/* ХЕДЕР С УВЕЛИЧЕННЫМИ КНОПКАМИ ДЛЯ МОБИЛЬНЫХ */}
-            <header className="bg-primary text-primary-foreground px-3 py-2 sm:px-6 sm:py-4 shadow-sm border-b border-black">
-                <div className="container mx-auto flex justify-between items-center">
-                    <Link href="/" className="text-left hover:opacity-80 transition-opacity">
-                        <h1 className="text-lg sm:text-2xl font-bold">СъёмБронь</h1>
-                        <p className="text-xs sm:text-sm text-primary-foreground/80 hidden sm:block">
-                            Результаты поиска
-                        </p>
-                    </Link>
-
-                    <nav className="flex gap-2">
-                        {/* УВЕЛИЧЕННЫЕ КНОПКИ ДЛЯ МОБИЛЬНЫХ */}
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-2 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs min-h-[40px] sm:min-h-[32px]">
-                            Войти
-                        </button>
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-2 py-2 sm:py-1.5 rounded-md font-medium transition-colors text-sm sm:text-xs border border-black min-h-[40px] sm:min-h-[32px]">
-                            Добавить
-                        </button>
-                    </nav>
-                </div>
-            </header>
+            
+            <Header />
 
             <main className="flex-1 container mx-auto px-3 sm:px-6 py-6 flex flex-col">
                 <div className="mb-6 flex justify-between items-center">

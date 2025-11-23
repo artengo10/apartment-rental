@@ -1,0 +1,60 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  name            String
+  phone           String
+  role            UserRole  @default(TENANT)
+  isVerified      Boolean   @default(false)
+  verificationCode String?
+  codeExpires     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  apartments Apartment[]
+
+  @@map("users")
+}
+
+model Apartment {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  price       String
+  type        PropertyType
+  district    String
+  lat         Float
+  lng         Float
+  address     String
+  rooms       Int?
+  area        Int?
+  floor       Int?
+  amenities   String[]
+  hostId      Int
+  host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("apartments")
+}
+
+enum UserRole {
+  TENANT
+  LANDLORD
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  STUDIO
+}

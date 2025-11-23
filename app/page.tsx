@@ -3,38 +3,12 @@
 
 import SmartSearch from '@/components/SmartSearch';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* ХЕДЕР С УМЕНЬШЕННЫМИ КНОПКАМИ */}
-      <header className="bg-primary text-primary-foreground px-3 py-2 sm:px-6 sm:py-4 shadow-sm border-b border-black">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link
-            href="/"
-            className="text-left hover:opacity-80 transition-opacity"
-            onClick={() => {
-              if (window.location.pathname === '/') {
-                window.location.reload();
-              }
-            }}
-          >
-            <h1 className="text-lg sm:text-2xl font-bold">СъёмБронь</h1>
-            <p className="text-xs text-primary-foreground/80 hidden xs:block">
-              Умный поиск жилья в Нижнем Новгороде
-            </p>
-          </Link>
-
-          <nav className="flex gap-2">
-            <button className="bg-blue-800 hover:bg-blue-900 text-white px-2 py-1.5 rounded-md font-medium transition-colors text-xs min-h-[32px]">
-              Войти
-            </button>
-            <button className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors text-xs border border-black min-h-[32px]">
-              Добавить
-            </button>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 container mx-auto px-2 sm:px-6 py-4 sm:py-12">
         <div className="text-center mb-6 sm:mb-8">
