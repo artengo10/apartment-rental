@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
+// Добавь эту строку
+export const dynamic = 'force-dynamic';
+
+
 // Функция для отправки уведомления в Telegram - ОСТАВЛЯЕМ ТОЛЬКО ЭТО ОБЪЯВЛЕНИЕ
 async function sendToTelegram(
   apartment: any,

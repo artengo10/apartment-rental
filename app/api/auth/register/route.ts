@@ -6,6 +6,8 @@ import {
 } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     console.log("=== REGISTRATION START ===");
