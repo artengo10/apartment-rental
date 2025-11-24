@@ -7,7 +7,6 @@ interface User {
     email: string;
     name: string;
     phone: string;
-    role: 'TENANT' | 'LANDLORD';
     isVerified: boolean;
 }
 
@@ -25,7 +24,6 @@ interface RegisterData {
     email: string;
     phone: string;
     password: string;
-    role: 'TENANT' | 'LANDLORD';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

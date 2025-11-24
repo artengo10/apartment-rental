@@ -4,14 +4,21 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from './modals/LoginModal';
 import RegisterModal from './modals/RegisterModal';
+import AddApartmentModal from './modals/AddApartmentWizard';
 
 export default function Header() {
     const { user, logout } = useAuth();
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showAddApartmentModal, setShowAddApartmentModal] = useState(false);
 
     const handleLogout = () => {
         logout();
+    };
+
+    // Функция для получения только имени (первого слова)
+    const getFirstName = (fullName: string) => {
+        return fullName.split(' ')[0];
     };
 
     return (
@@ -31,11 +38,19 @@ export default function Header() {
                     <nav className="flex gap-2">
                         {user ? (
                             <div className="flex items-center gap-4">
+                                {/* Кнопка добавления жилья */}
+                                <button
+                                    onClick={() => setShowAddApartmentModal(true)}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm"
+                                >
+                                    + Добавить жилье
+                                </button>
+
                                 <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-medium">{user.name}</p>
-                                    <p className="text-xs text-primary-foreground/80">
-                                        {user.role === 'TENANT' ? 'Арендатор' : 'Арендодатель'}
+                                    <p className="text-sm font-medium">
+                                        Привет, {getFirstName(user.name)}!
                                     </p>
+                                    {/* Убрали отображение роли */}
                                 </div>
                                 <button
                                     onClick={handleLogout}
@@ -78,6 +93,16 @@ export default function Header() {
                 onSwitchToLogin={() => {
                     setShowRegisterModal(false);
                     setShowLoginModal(true);
+                }}
+            />
+
+            {/* Модальное окно для добавления жилья */}
+            <AddApartmentModal
+                isOpen={showAddApartmentModal}
+                onClose={() => setShowAddApartmentModal(false)}
+                onSuccess={() => {
+                    // Можно добавить уведомление об успешном добавлении
+                    console.log('Жилье успешно добавлено!');
                 }}
             />
         </>

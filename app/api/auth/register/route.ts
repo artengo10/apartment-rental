@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("Request body:", body);
 
-    const { name, email, phone, password, role } = body;
+    const { name, email, phone, password,} = body;
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json(
@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
         email,
         phone,
         password: hashedPassword,
-        role: role || "TENANT",
+        // Убираем role
         verificationCode,
         codeExpires,
-        isVerified: false, // Пока не подтвержден
+        isVerified: false,
       },
     });
 

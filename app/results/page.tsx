@@ -10,6 +10,7 @@ import { getSearchCriteria } from '@/lib/search-utils';
 import { SearchCriteria } from '@/types/scoring';
 import { filterApartments } from '@/lib/filter-apartments';
 import Header from '@/components/Header';
+import { useAuth } from '@/context/AuthContext'; // Добавляем импорт useAuth
 
 export default function ResultsPage() {
     const [isClient, setIsClient] = useState(false);
@@ -20,6 +21,9 @@ export default function ResultsPage() {
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const mapContainerRef = useRef<HTMLDivElement>(null);
+
+    // Добавляем проверку авторизации
+    const { user, isLoading: authLoading } = useAuth();
 
     useEffect(() => {
         setIsClient(true);
@@ -132,6 +136,17 @@ export default function ResultsPage() {
                         >
                             Фильтр
                         </button>
+
+                        {/* Кнопка "Мои объявления" показывается ТОЛЬКО для авторизованных пользователей */}
+                        {user && (
+                            <Link
+                                href="/my-apartments"
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-xs sm:text-xs h-fit min-h-[36px] sm:min-h-[32px] flex items-center whitespace-nowrap"
+                            >
+                                Мои объявления
+                            </Link>
+                        )}
+
                         <Link
                             href="/"
                             className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-xs sm:text-xs h-fit min-h-[36px] sm:min-h-[32px] flex items-center whitespace-nowrap"

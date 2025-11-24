@@ -8,49 +8,83 @@ datasource db {
 }
 
 model User {
-  id               Int         @id @default(autoincrement())
-  email            String      @unique
-  password         String
-  name             String
-  phone            String
-  role             UserRole    @default(TENANT)
-  isVerified       Boolean     @default(false)
-  verificationCode String?
-  codeExpires      DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  apartments       Apartment[]
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  name            String
+  phone           String
+  avatar          String?
+  isVerified      Boolean   @default(false)
+  verificationCode String?   
+  codeExpires     DateTime? 
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  apartments Apartment[]
+  favorites  Favorite[]
+  reviews    Review[]
 
   @@map("users")
 }
 
 model Apartment {
-  id          Int          @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   title       String
   description String
-  price       String
+  price       Int
   type        PropertyType
   district    String
-  lat         Float
-  lng         Float
+  lat         Float?
+  lng         Float?
   address     String
   rooms       Int?
   area        Int?
   floor       Int?
   amenities   String[]
+  images      String[]
+  isPublished Boolean  @default(false)
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String? // Причина отказа
   hostId      Int
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  host        User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime? // Когда было опубликовано
+
+  favorites   Favorite[]
+  reviews     Review[]
 
   @@map("apartments")
 }
 
-enum UserRole {
-  TENANT
-  LANDLORD
+// Новая модель для избранного
+model Favorite {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apartmentId Int
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, apartmentId])
+  @@map("favorites")
 }
 
+// Новая модель для отзывов
+model Review {
+  id          Int      @id @default(autoincrement())
+  rating      Int      // 1-5 звезд
+  comment     String
+  authorId    Int
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  apartmentId Int
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@map("reviews")
+}
+
+// Убираем UserRole, оставляем только PropertyType
 enum PropertyType {
   APARTMENT
   HOUSE

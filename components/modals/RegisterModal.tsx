@@ -124,19 +124,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Роль
-                            </label>
-                            <select
-                                value={formData.role}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'TENANT' | 'LANDLORD' })}
-                                className="w-full p-2 border border-gray-300 rounded-lg"
-                            >
-                                <option value="TENANT">Арендатор</option>
-                                <option value="LANDLORD">Арендодатель</option>
-                            </select>
-                        </div>
+                       
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="button"
