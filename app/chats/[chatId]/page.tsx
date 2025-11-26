@@ -43,30 +43,61 @@ export default function ChatPage() {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isTyping, setIsTyping] = useState(false);
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const pollIntervalRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
         setIsMounted(true);
-        return () => setIsMounted(false);
+        return () => {
+            setIsMounted(false);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
     }, []);
 
+    // Polling для обновления сообщений
     useEffect(() => {
-        if (!isMounted || isLoading) return;
+        if (!isMounted || !chatId || !user) return;
 
-        if (!user) {
-            router.push('/');
-            return;
+        // Начинаем polling каждые 3 секунды
+        pollIntervalRef.current = setInterval(() => {
+            fetchMessages();
+        }, 3000);
+
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, [isMounted, chatId, user]);
+
+    const fetchMessages = async () => {
+        if (!isMounted || !chatId) return;
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+
+            const response = await fetch(`/api/chats/${chatId}/messages`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const messagesData = await response.json();
+                setMessages(messagesData);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching messages:', error);
         }
-
-        if (!chatId) {
-            setError('ID чата не указан');
-            setLoading(false);
-            return;
-        }
-
-        fetchChat();
-    }, [user, isLoading, chatId, isMounted, router]);
+    };
 
     const fetchChat = async () => {
         if (!isMounted) return;
@@ -91,11 +122,6 @@ export default function ChatPage() {
 
             const data = await response.json();
 
-            // ДОБАВИМ ОТЛАДОЧНЫЙ ВЫВОД ДЛЯ АНАЛИЗА ДАННЫХ
-            console.log('🔍 Chat data received:', data);
-            console.log('🏠 Apartment data:', data.apartment);
-            console.log('📝 Apartment title:', data.apartment?.title, 'Type:', typeof data.apartment?.title);
-
             if (isMounted) {
                 setChat(data);
                 setMessages(data.messages || []);
@@ -112,10 +138,36 @@ export default function ChatPage() {
         }
     };
 
-    // Остальные функции остаются без изменений...
+    // Обработчик ввода сообщения (для индикатора "печатает...")
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMessage(e.target.value);
+
+        // Отправляем событие "печатает"
+        if (!isTyping) {
+            setIsTyping(true);
+            // В реальном приложении здесь бы отправлялся запрос на сервер
+        }
+
+        // Сбрасываем таймер
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Сбрасываем индикатор через 2 секунды бездействия
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+        }, 2000);
+    };
+
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim() || !chat || !isMounted) return;
+
+        // Сбрасываем индикатор печатания
+        setIsTyping(false);
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
 
         try {
             const token = localStorage.getItem('auth_token');
@@ -134,8 +186,15 @@ export default function ChatPage() {
             }
 
             const message = await response.json();
+
+            // Добавляем сообщение в локальное состояние сразу
             setMessages(prev => [...prev, message]);
             setNewMessage('');
+
+            // Обновляем список сообщений через секунду для синхронизации
+            setTimeout(() => {
+                fetchMessages();
+            }, 1000);
 
         } catch (error) {
             console.error('❌ Error sending message:', error);
@@ -157,6 +216,23 @@ export default function ChatPage() {
         }
     }, [messages, isMounted]);
 
+    useEffect(() => {
+        if (!isMounted || isLoading) return;
+
+        if (!user) {
+            router.push('/');
+            return;
+        }
+
+        if (!chatId) {
+            setError('ID чата не указан');
+            setLoading(false);
+            return;
+        }
+
+        fetchChat();
+    }, [user, isLoading, chatId, isMounted, router]);
+
     const getOtherUser = () => {
         if (!chat || !user) return null;
         return user.id === chat.host.id ? chat.tenant : chat.host;
@@ -167,21 +243,6 @@ export default function ChatPage() {
             hour: '2-digit',
             minute: '2-digit'
         });
-    };
-
-    // Функция для генерации читаемого названия объявления
-    const getApartmentDisplayName = () => {
-        if (!chat) return 'Объявление';
-
-        const title = chat.apartment.title;
-
-        // Если title содержит только цифры, создаем читаемое название
-        if (/^\d+$/.test(title)) {
-            return `Объявление #${title}`;
-        }
-
-        // Если title уже читаемый, используем его
-        return title;
     };
 
     if (isLoading) {
@@ -248,15 +309,12 @@ export default function ChatPage() {
     }
 
     const otherUser = getOtherUser();
-    const apartmentDisplayName = getApartmentDisplayName();
 
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            {/* Контент чата */}
-            <div className="pt-0">
-                {/* Header чата */}
+            <div className="pt-12">
                 <div className="bg-white border-b shadow-sm sticky top-16 z-10">
                     <div className="container mx-auto px-4 py-4">
                         <div className="flex items-center justify-between">
@@ -271,7 +329,6 @@ export default function ChatPage() {
                                     Назад к чатам
                                 </Link>
 
-                                {/* Кликабельный профиль собеседника */}
                                 <Link
                                     href={`/profile/${otherUser?.id}`}
                                     className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
@@ -290,13 +347,12 @@ export default function ChatPage() {
                                 </Link>
                             </div>
 
-                            {/* ИСПРАВЛЕННАЯ информация об объявлении */}
                             <Link
                                 href={`/apartment/${chat.apartment.id}`}
                                 className="text-right hover:bg-gray-50 rounded-lg p-2 transition-colors max-w-xs"
                             >
                                 <p className="text-sm font-medium text-gray-900 truncate">
-                                    {apartmentDisplayName}
+                                    {chat.apartment.title}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1 truncate">
                                     {chat.apartment.address}
@@ -306,10 +362,8 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                {/* Сообщения */}
                 <div className="container mx-auto px-4 py-6 max-w-4xl">
                     <div className="bg-white rounded-lg shadow-sm border h-[600px] flex flex-col">
-                        {/* Контейнер сообщений */}
                         <div className="flex-1 p-4 overflow-y-auto">
                             {messages.length === 0 ? (
                                 <div className="text-center text-gray-500 mt-8">
@@ -342,18 +396,31 @@ export default function ChatPage() {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {/* Индикатор "печатает..." (просто демо) */}
+                                    {isTyping && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-gray-200 text-gray-900 rounded-2xl rounded-bl-none px-4 py-2 max-w-xs">
+                                                <div className="flex space-x-1">
+                                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div ref={messagesEndRef} />
                                 </div>
                             )}
                         </div>
 
-                        {/* Поле ввода сообщения */}
                         <form onSubmit={sendMessage} className="p-4 border-t">
                             <div className="flex space-x-4">
                                 <input
                                     type="text"
                                     value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onChange={handleInputChange}
                                     placeholder="Введите сообщение..."
                                     className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />

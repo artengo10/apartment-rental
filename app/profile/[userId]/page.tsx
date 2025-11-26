@@ -26,22 +26,34 @@ export default function PublicProfilePage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchUserProfile();
+        if (userId) {
+            fetchUserProfile();
+        }
     }, [userId]);
 
     const fetchUserProfile = async () => {
         try {
-            // Используем ваш существующий endpoint с параметром userId
-            const response = await fetch(`/api/users/profile?userId=${userId}`);
+            setError(null);
+            setLoading(true);
+
+            console.log('🔍 Fetching public profile for user ID:', userId);
+
+            // Используйте новый endpoint
+            const response = await fetch(`/api/user-profile?userId=${userId}`);
+
+            console.log('📊 Profile response status:', response.status);
 
             if (response.ok) {
                 const userData = await response.json();
+                console.log('✅ User profile data received:', userData);
                 setUser(userData);
             } else {
-                setError('Пользователь не найден');
+                const errorData = await response.json();
+                console.error('❌ Error loading profile:', errorData);
+                setError(errorData.error || 'Пользователь не найден');
             }
         } catch (error) {
-            console.error('Error fetching user profile:', error);
+            console.error('❌ Network error loading profile:', error);
             setError('Ошибка загрузки профиля');
         } finally {
             setLoading(false);
@@ -64,7 +76,15 @@ export default function PublicProfilePage() {
             <div className="min-h-screen bg-gray-50">
                 <Header />
                 <div className="pt-16 flex items-center justify-center min-h-[80vh]">
-                    <div className="text-lg text-red-600">{error || 'Пользователь не найден'}</div>
+                    <div className="text-center">
+                        <div className="text-lg text-red-600 mb-4">{error || 'Пользователь не найден'}</div>
+                        <button
+                            onClick={fetchUserProfile}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                        >
+                            Попробовать снова
+                        </button>
+                    </div>
                 </div>
             </div>
         );

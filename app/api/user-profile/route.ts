@@ -1,33 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    // Получаем userId из query параметров
     const { searchParams } = new URL(request.url);
     const userIdParam = searchParams.get("userId");
 
-    let userId: number;
+    console.log("🔍 User Profile API - userIdParam:", userIdParam);
 
-    if (userIdParam) {
-      // Если передан userId, используем его (публичный профиль)
-      userId = parseInt(userIdParam);
-    } else {
-      // Если userId не передан, используем авторизованного пользователя
-      const token = request.headers
-        .get("Authorization")
-        ?.replace("Bearer ", "");
-
-      if (!token) {
-        return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      userId = decoded.userId;
+    if (!userIdParam) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
     }
+
+    const userId = parseInt(userIdParam);
+
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: "Invalid User ID" }, { status: 400 });
+    }
+
+    console.log("🔍 Fetching user profile for ID:", userId);
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -43,15 +39,17 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
+      console.log("❌ User not found for ID:", userId);
       return NextResponse.json(
         { error: "Пользователь не найден" },
         { status: 404 }
       );
     }
 
+    console.log("✅ User profile found:", user.name);
     return NextResponse.json(user);
   } catch (error) {
-    console.error("Ошибка при получении пользователя:", error);
+    console.error("❌ Ошибка при получении пользователя:", error);
     return NextResponse.json(
       { error: "Ошибка при получении пользователя" },
       { status: 500 }
