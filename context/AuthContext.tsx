@@ -43,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         try {
             const token = localStorage.getItem('auth_token');
+            console.log('🔐 Checking auth, token exists:', !!token);
+
             if (!token) {
                 setIsLoading(false);
                 return;
@@ -54,16 +56,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             });
 
+            console.log('✅ Auth verify response status:', response.status);
+
             if (response.ok) {
                 const userData = await response.json();
+                console.log('✅ User data loaded:', userData);
                 setUser(userData);
             } else {
+                console.log('❌ Token invalid, removing from storage');
                 localStorage.removeItem('auth_token');
             }
         } catch (error) {
-            console.error('Auth check failed:', error);
+            console.error('❌ Auth check failed:', error);
             localStorage.removeItem('auth_token');
         } finally {
+            console.log('🏁 Auth check completed, setting isLoading to false');
             setIsLoading(false);
         }
     };
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const { token, user: userData } = await response.json();
                 localStorage.setItem('auth_token', token);
                 setUser(userData);
+                setIsLoading(false); // Важно: сбрасываем loading после успешного логина
                 return true;
             } else {
                 const errorData = await response.json();
@@ -104,13 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify(userData),
             });
 
-            if (response.ok) {
-                return true;
-            } else {
-                const errorData = await response.json();
-                console.error('Registration failed:', errorData.error);
-                return false;
-            }
+            return response.ok;
         } catch (error) {
             console.error('Registration error:', error);
             return false;
@@ -131,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const { token, user: userData } = await response.json();
                 localStorage.setItem('auth_token', token);
                 setUser(userData);
+                setIsLoading(false); // Важно: сбрасываем loading после верификации
                 return true;
             } else {
                 const errorData = await response.json();
@@ -147,6 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('auth_token');
         setUser(null);
     };
+
+    // Отладочная информация
+    console.log('🔐 Auth Context State:', { user: !!user, isLoading, isClient });
 
     return (
         <AuthContext.Provider value={{

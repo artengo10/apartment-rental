@@ -46,18 +46,36 @@ export default function Header() {
                                     + Добавить жилье
                                 </button>
 
+                                {/* Иконка чата */}
+                                <Link
+                                    href="/chats"
+                                    className="relative bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md font-medium transition-colors flex items-center justify-center"
+                                    title="Сообщения"
+                                >
+                                    <span className="text-lg">💬</span>
+                                    {/* Показываем бейдж только если есть непрочитанные сообщения */}
+                                    {/* Позже можно добавить логику для подсчета непрочитанных */}
+                                </Link>
+
                                 <div className="text-right hidden sm:block">
                                     <p className="text-sm font-medium">
                                         Привет, {getFirstName(user.name)}!
                                     </p>
                                     {/* Убрали отображение роли */}
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm"
-                                >
-                                    Выйти
-                                </button>
+                                {user && (
+                                    <div className="flex items-center gap-4">
+                                        <Link
+                                            href="/profile"
+                                            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+                                        >
+                                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                                                {user.name?.charAt(0).toUpperCase() || 'U'}
+                                            </div>
+                                            <span className="hidden sm:block">{user.name}</span>
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <>

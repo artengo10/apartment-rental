@@ -5,14 +5,18 @@ import { useParams, useRouter } from 'next/navigation';
 import { apartments, Apartment } from '@/types/apartment';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ApartmentDetail() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const [apartment, setApartment] = useState<Apartment | null>(null);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [showChat, setShowChat] = useState(false);
     const [message, setMessage] = useState('');
+    const [currentChatId, setCurrentChatId] = useState<number | null>(null);
+    const [chatMessages, setChatMessages] = useState<any[]>([]);
 
     useEffect(() => {
         const apartmentId = parseInt(params.id as string);
@@ -40,13 +44,135 @@ export default function ApartmentDetail() {
         alert(`Позвонить по номеру: +7 (999) 123-45-67\nОбъявление: ${apartment?.title}`);
     };
 
-    const handleSendMessage = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (message.trim()) {
-            alert(`Сообщение отправлено хозяину: "${message}"`);
-            setMessage('');
-            setShowChat(false);
+    // Функция для загрузки истории сообщений
+    const loadChatHistory = async (chatId: number) => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+
+            const response = await fetch(`/api/chats/${chatId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const chatData = await response.json();
+                if (chatData.messages && chatData.messages.length > 0) {
+                    setChatMessages(chatData.messages);
+                } else {
+                    setChatMessages([]);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
         }
+    };
+
+    // Функция для создания или получения чата
+    const getOrCreateChat = async () => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('Для начала чата необходимо авторизоваться');
+                return null;
+            }
+
+            console.log('🔄 Creating chat for apartment:', apartment?.id);
+
+            const response = await fetch('/api/chats', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    apartmentId: apartment?.id
+                    // Убрали hostId - теперь API сам его достает из базы
+                })
+            });
+
+            console.log('📨 Chat creation response status:', response.status);
+
+            if (response.ok) {
+                const chat = await response.json();
+                console.log('✅ Chat created:', chat);
+                setCurrentChatId(chat.id);
+                await loadChatHistory(chat.id);
+                return chat.id;
+            } else {
+                const errorText = await response.text();
+                console.error('❌ Failed to create/get chat:', response.status, errorText);
+
+                // Показываем понятную ошибку пользователю
+                let errorMessage = 'Не удалось создать чат';
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.error || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+
+                alert(errorMessage);
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error creating chat:', error);
+            alert('Произошла ошибка при создании чата');
+            return null;
+        }
+    };
+
+    // Функция открытия чата
+    const handleOpenChat = async () => {
+        if (!user) {
+            alert('Для начала чата необходимо авторизоваться');
+            return;
+        }
+
+        setShowChat(true);
+        // Даем время на отрисовку модального окна
+        setTimeout(async () => {
+            await getOrCreateChat();
+        }, 100);
+    };
+
+    // Функция отправки сообщения
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!message.trim() || !currentChatId) return;
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/chats/${currentChatId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: message })
+            });
+
+            if (response.ok) {
+                const newMessage = await response.json();
+                // Добавляем новое сообщение в состояние
+                setChatMessages(prev => [...prev, newMessage]);
+                setMessage('');
+            } else {
+                console.error('Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    };
+
+    // Функция для форматирования времени
+    const formatMessageTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     if (!apartment) {
@@ -123,8 +249,8 @@ export default function ApartmentDetail() {
                                                         key={index}
                                                         onClick={() => setCurrentPhotoIndex(index)}
                                                         className={`w-3 h-3 rounded-full transition-all ${index === currentPhotoIndex
-                                                                ? 'bg-white'
-                                                                : 'bg-white/50'
+                                                            ? 'bg-white'
+                                                            : 'bg-white/50'
                                                             }`}
                                                     />
                                                 ))}
@@ -147,8 +273,8 @@ export default function ApartmentDetail() {
                                         key={index}
                                         onClick={() => setCurrentPhotoIndex(index)}
                                         className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${index === currentPhotoIndex
-                                                ? 'border-green-500'
-                                                : 'border-transparent'
+                                            ? 'border-green-500'
+                                            : 'border-transparent'
                                             }`}
                                     >
                                         <Image
@@ -208,7 +334,7 @@ export default function ApartmentDetail() {
                                 </Link>
 
                                 <button
-                                    onClick={() => setShowChat(true)}
+                                    onClick={handleOpenChat}
                                     className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
                                 >
                                     <span>💬</span>
@@ -312,26 +438,62 @@ export default function ApartmentDetail() {
             {/* Чат (модальное окно) */}
             {showChat && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
+                        {/* Header чата */}
                         <div className="p-4 border-b flex justify-between items-center">
-                            <h3 className="text-lg font-semibold">Чат с хозяином</h3>
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                    {apartment.hostName?.charAt(0).toUpperCase() || 'Х'}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold">Чат с {apartment.hostName || 'хозяином'}</h3>
+                                    <p className="text-sm text-green-600">● В сети</p>
+                                </div>
+                            </div>
                             <button
-                                onClick={() => setShowChat(false)}
-                                className="text-gray-500 hover:text-gray-700"
+                                onClick={() => {
+                                    setShowChat(false);
+                                    setChatMessages([]);
+                                    setCurrentChatId(null);
+                                }}
+                                className="text-gray-500 hover:text-gray-700 text-xl"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <div className="p-4 h-64 overflow-y-auto space-y-4">
-                            <div className="flex justify-start">
-                                <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
-                                    <p>Здравствуйте! Чем могу помочь?</p>
-                                    <span className="text-xs text-gray-500 block mt-1">10:30</span>
+                        {/* Сообщения */}
+                        <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                            {chatMessages.length === 0 ? (
+                                <div className="text-center text-gray-500 mt-8">
+                                    Начните общение с {apartment.hostName || 'хозяином'}
                                 </div>
-                            </div>
+                            ) : (
+                                chatMessages.map((msg) => (
+                                    <div
+                                        key={msg.id}
+                                        className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div
+                                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${msg.senderId === user?.id
+                                                    ? 'bg-blue-500 text-white rounded-br-none'
+                                                    : 'bg-gray-200 text-gray-900 rounded-bl-none'
+                                                }`}
+                                        >
+                                            <p className="text-sm">{msg.content}</p>
+                                            <p
+                                                className={`text-xs mt-1 ${msg.senderId === user?.id ? 'text-blue-100' : 'text-gray-500'
+                                                    }`}
+                                            >
+                                                {formatMessageTime(msg.createdAt)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
 
+                        {/* Форма отправки */}
                         <form onSubmit={handleSendMessage} className="p-4 border-t">
                             <div className="flex space-x-2">
                                 <input
@@ -339,11 +501,12 @@ export default function ApartmentDetail() {
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     placeholder="Напишите сообщение..."
-                                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                                    className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
                                 />
                                 <button
                                     type="submit"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                                    disabled={!message.trim() || !currentChatId}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                                 >
                                     Отправить
                                 </button>
