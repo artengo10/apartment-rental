@@ -39,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const checkAuth = async () => {
-        if (!isClient) return;
+        if (!isClient) {
+            setIsLoading(false);
+            return;
+        }
 
         try {
             const token = localStorage.getItem('auth_token');
@@ -89,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const { token, user: userData } = await response.json();
                 localStorage.setItem('auth_token', token);
                 setUser(userData);
-                setIsLoading(false); // Важно: сбрасываем loading после успешного логина
+                setIsLoading(false);
                 return true;
             } else {
                 const errorData = await response.json();
@@ -133,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const { token, user: userData } = await response.json();
                 localStorage.setItem('auth_token', token);
                 setUser(userData);
-                setIsLoading(false); // Важно: сбрасываем loading после верификации
+                setIsLoading(false);
                 return true;
             } else {
                 const errorData = await response.json();
@@ -147,12 +150,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const logout = () => {
-        localStorage.removeItem('auth_token');
+        if (isClient) {
+            localStorage.removeItem('auth_token');
+        }
         setUser(null);
     };
 
-    // Отладочная информация
-    console.log('🔐 Auth Context State:', { user: !!user, isLoading, isClient });
+    // Только клиентский отладочный вывод
+    if (isClient) {
+        console.log('🔐 Auth Context State:', { user: !!user, isLoading, isClient });
+    }
 
     return (
         <AuthContext.Provider value={{
