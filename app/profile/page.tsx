@@ -18,10 +18,13 @@ export default function ProfilePage() {
         setIsClient(true);
     }, []);
 
-    // Проверка на клиентской стороне
+    // Плавный переход если пользователь не авторизован
     useEffect(() => {
         if (isClient && !user) {
-            router.push('/');
+            const timer = setTimeout(() => {
+                router.push('/');
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [user, isClient, router]);
 
@@ -49,7 +52,10 @@ export default function ProfilePage() {
 
     const handleLogout = () => {
         logout();
-        router.push('/');
+        // Небольшая задержка для лучшего UX
+        setTimeout(() => {
+            router.push('/');
+        }, 100);
     };
 
     const ProfileInfo = () => (
@@ -83,17 +89,11 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* Дополнительные поля которые можно добавить позже */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-xl font-semibold mb-4">Дополнительная информация</h3>
-                <div className="text-gray-500 text-sm">
-                    <p>Здесь можно добавить:</p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                        <li>Дату рождения</li>
-                        <li>О себе</li>
-                        <li>Предпочтения по аренде</li>
-                        <li>Способы связи</li>
-                    </ul>
+                <h3 className="text-xl font-semibold mb-4">Безопасность</h3>
+                <div className="text-gray-600 text-sm">
+                    <p>Ваша сессия сохраняется между перезагрузками страницы</p>
+                    <p className="mt-2 text-green-600">✓ Авторизация активна</p>
                 </div>
             </div>
         </div>
@@ -165,7 +165,9 @@ export default function ProfilePage() {
                             <div>
                                 <h2 className="text-xl font-semibold">{user.name}</h2>
                                 <p className="text-gray-600">{user.email}</p>
-                                <p className="text-gray-500 text-sm">Зарегистрирован: {new Date().toLocaleDateString('ru-RU')}</p>
+                                <p className="text-gray-500 text-sm">
+                                    {user.isVerified ? '✅ Подтвержденный аккаунт' : '⏳ Ожидает подтверждения'}
+                                </p>
                             </div>
                         </div>
                     </div>

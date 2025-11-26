@@ -26,6 +26,10 @@ interface RegisterData {
     password: string;
 }
 
+// Ключи для localStorage
+const AUTH_TOKEN_KEY = 'auth_token';
+const USER_DATA_KEY = 'user_data';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -33,8 +37,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
 
+    // Функция для сохранения пользователя в localStorage
+    const saveUserToStorage = (userData: User) => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+        }
+    };
+
+    // Функция для загрузки пользователя из localStorage
+    const loadUserFromStorage = (): User | null => {
+        if (typeof window !== 'undefined') {
+            const userData = localStorage.getItem(USER_DATA_KEY);
+            return userData ? JSON.parse(userData) : null;
+        }
+        return null;
+    };
+
+    // Функция для удаления пользователя из localStorage
+    const removeUserFromStorage = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(USER_DATA_KEY);
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+        }
+    };
+
     useEffect(() => {
         setIsClient(true);
+
+        // Сначала загружаем пользователя из localStorage для мгновенного отображения
+        const savedUser = loadUserFromStorage();
+        if (savedUser) {
+            setUser(savedUser);
+        }
+
+        // Затем проверяем актуальность токена
         checkAuth();
     }, []);
 
@@ -45,8 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
-            console.log('🔐 Checking auth, token exists:', !!token);
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
             if (!token) {
                 setIsLoading(false);
@@ -59,21 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             });
 
-            console.log('✅ Auth verify response status:', response.status);
-
             if (response.ok) {
                 const userData = await response.json();
-                console.log('✅ User data loaded:', userData);
                 setUser(userData);
+                saveUserToStorage(userData); // Обновляем данные в localStorage
             } else {
                 console.log('❌ Token invalid, removing from storage');
-                localStorage.removeItem('auth_token');
+                removeUserFromStorage();
             }
         } catch (error) {
             console.error('❌ Auth check failed:', error);
-            localStorage.removeItem('auth_token');
+            removeUserFromStorage();
         } finally {
-            console.log('🏁 Auth check completed, setting isLoading to false');
             setIsLoading(false);
         }
     };
@@ -90,8 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 const { token, user: userData } = await response.json();
-                localStorage.setItem('auth_token', token);
+                localStorage.setItem(AUTH_TOKEN_KEY, token);
                 setUser(userData);
+                saveUserToStorage(userData); // Сохраняем пользователя в localStorage
                 setIsLoading(false);
                 return true;
             } else {
@@ -134,8 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 const { token, user: userData } = await response.json();
-                localStorage.setItem('auth_token', token);
+                localStorage.setItem(AUTH_TOKEN_KEY, token);
                 setUser(userData);
+                saveUserToStorage(userData); // Сохраняем пользователя в localStorage
                 setIsLoading(false);
                 return true;
             } else {
@@ -150,16 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const logout = () => {
-        if (isClient) {
-            localStorage.removeItem('auth_token');
-        }
+        removeUserFromStorage();
         setUser(null);
     };
-
-    // Только клиентский отладочный вывод
-    if (isClient) {
-        console.log('🔐 Auth Context State:', { user: !!user, isLoading, isClient });
-    }
 
     return (
         <AuthContext.Provider value={{
