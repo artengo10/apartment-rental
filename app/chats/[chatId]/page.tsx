@@ -171,6 +171,13 @@ export default function ChatPage() {
 
         try {
             const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Токен авторизации не найден');
+            }
+
+            console.log('📤 Sending message to chat:', chatId);
+            console.log('📝 Message content:', newMessage);
+
             const response = await fetch(`/api/chats/${chatId}/messages`, {
                 method: 'POST',
                 headers: {
@@ -180,12 +187,30 @@ export default function ChatPage() {
                 body: JSON.stringify({ content: newMessage })
             });
 
+            console.log('📨 Send message response status:', response.status);
+
             if (!response.ok) {
-                const errorText = await response.text();
+                let errorText = 'Неизвестная ошибка';
+                try {
+                    // Пробуем получить текст ошибки
+                    const errorData = await response.text();
+                    errorText = errorData || `HTTP ${response.status}`;
+                    console.error('❌ Server error response:', errorText);
+                } catch (parseError) {
+                    errorText = `HTTP ${response.status} - Не удалось прочитать ошибку`;
+                }
                 throw new Error(`Ошибка отправки: ${errorText}`);
             }
 
-            const message = await response.json();
+            // Парсим успешный ответ
+            let message;
+            try {
+                message = await response.json();
+                console.log('✅ Message sent successfully:', message);
+            } catch (parseError) {
+                console.error('❌ Failed to parse response:', parseError);
+                throw new Error('Не удалось обработать ответ сервера');
+            }
 
             // Добавляем сообщение в локальное состояние сразу
             setMessages(prev => [...prev, message]);
@@ -203,6 +228,7 @@ export default function ChatPage() {
             }
         }
     };
+    
 
     const scrollToBottom = () => {
         if (messagesEndRef.current && isMounted) {
