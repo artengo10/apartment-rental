@@ -102,7 +102,26 @@ export default function AdminModerate() {
         return <div className="p-8">Загрузка...</div>;
     }
 
+    <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-4">Админ панель</h1>
+        <div className="flex gap-4 mb-6">
+            <button
+                onClick={() => router.push('/admin/moderate')}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+                Модерация жилья
+            </button>
+            <button
+                onClick={() => router.push('/admin/moderate-reviews')}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+                Модерация отзывов
+            </button>
+        </div>
+    </div>
+
     return (
+
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-6">Модерация объявлений</h1>
 

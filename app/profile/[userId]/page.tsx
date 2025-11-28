@@ -1,3 +1,4 @@
+// app/profile/[userId]/page.tsx - ОБНОВЛЕННЫЙ С ОТЗЫВАМИ
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,6 +6,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
+import ReviewList from '@/components/ReviewList';
+import CreateReviewModal from '@/components/modals/CreateReviewModal';
 
 interface PublicUser {
     id: number;
@@ -24,12 +27,15 @@ export default function PublicProfilePage() {
     const [user, setUser] = useState<PublicUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [hasActiveChat, setHasActiveChat] = useState(false);
 
     useEffect(() => {
         if (userId) {
             fetchUserProfile();
+            checkActiveChat();
         }
-    }, [userId]);
+    }, [userId, currentUser]);
 
     const fetchUserProfile = async () => {
         try {
@@ -38,7 +44,6 @@ export default function PublicProfilePage() {
 
             console.log('🔍 Fetching public profile for user ID:', userId);
 
-            // Используйте новый endpoint
             const response = await fetch(`/api/user-profile?userId=${userId}`);
 
             console.log('📊 Profile response status:', response.status);
@@ -57,6 +62,27 @@ export default function PublicProfilePage() {
             setError('Ошибка загрузки профиля');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Проверяем, есть ли активный чат с пользователем
+    const checkActiveChat = async () => {
+        if (!currentUser || !userId) return;
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/chats/check?otherUserId=${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setHasActiveChat(data.hasChat);
+            }
+        } catch (error) {
+            console.error('Error checking chat:', error);
         }
     };
 
@@ -97,8 +123,9 @@ export default function PublicProfilePage() {
             <Header />
 
             <div className="pt-16">
-                <div className="container mx-auto px-4 py-8 max-w-4xl">
-                    <div className="bg-white rounded-lg shadow-sm border">
+                <div className="container mx-auto px-4 py-8 max-w-6xl">
+                    {/* Основная информация о пользователе */}
+                    <div className="bg-white rounded-lg shadow-sm border mb-6">
                         <div className="p-8">
                             {/* Заголовок */}
                             <div className="text-center mb-8">
@@ -141,9 +168,10 @@ export default function PublicProfilePage() {
                                 </div>
                             </div>
 
-                            {/* Если это не свой профиль, показываем кнопку написать */}
-                            {!isOwnProfile && currentUser && (
-                                <div className="text-center mt-8">
+                            {/* Кнопки действий */}
+                            <div className="flex justify-center gap-4 mt-8">
+                                {/* Если это не свой профиль, показываем кнопку написать */}
+                                {!isOwnProfile && currentUser && (
                                     <Link
                                         href={`/chats?userId=${user.id}`}
                                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-flex items-center transition-colors"
@@ -151,12 +179,21 @@ export default function PublicProfilePage() {
                                         <span className="mr-2">💬</span>
                                         Написать сообщение
                                     </Link>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Если это свой профиль, показываем кнопку редактирования */}
-                            {isOwnProfile && (
-                                <div className="text-center mt-8">
+                                {/* Кнопка оставить отзыв - показываем только если есть активный чат */}
+                                {!isOwnProfile && currentUser && hasActiveChat && (
+                                    <button
+                                        onClick={() => setShowReviewModal(true)}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg inline-flex items-center transition-colors"
+                                    >
+                                        <span className="mr-2">⭐</span>
+                                        Оставить отзыв
+                                    </button>
+                                )}
+
+                                {/* Если это свой профиль, показываем кнопку редактирования */}
+                                {isOwnProfile && (
                                     <Link
                                         href="/profile"
                                         className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg inline-flex items-center transition-colors"
@@ -164,12 +201,43 @@ export default function PublicProfilePage() {
                                         <span className="mr-2">✏️</span>
                                         Редактировать профиль
                                     </Link>
+                                )}
+                            </div>
+
+                            {/* Подсказка про отзывы */}
+                            {!isOwnProfile && currentUser && !hasActiveChat && (
+                                <div className="text-center mt-4">
+                                    <p className="text-sm text-gray-500">
+                                        Чтобы оставить отзыв, нужно начать общение с пользователем
+                                    </p>
                                 </div>
                             )}
                         </div>
                     </div>
+
+                    {/* Блок с отзывами */}
+                    <div className="bg-white rounded-lg shadow-sm border">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Отзывы о пользователе</h2>
+                            <ReviewList hostId={user.id} />
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Модальное окно создания отзыва */}
+            {!isOwnProfile && user && (
+                <CreateReviewModal
+                    isOpen={showReviewModal}
+                    onClose={() => setShowReviewModal(false)}
+                    onSuccess={() => {
+                        // Перезагружаем страницу чтобы обновить отзывы
+                        window.location.reload();
+                    }}
+                    hostId={user.id}
+                    hostName={user.name}
+                />
+            )}
         </div>
     );
 }

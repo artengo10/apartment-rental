@@ -1,3 +1,4 @@
+// lib/admin-auth-utils.ts
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -18,4 +19,14 @@ export const generateAdminToken = (adminId: number): string => {
 
 export const verifyAdminToken = (token: string): { adminId: number } => {
   return jwt.verify(token, process.env.JWT_SECRET!) as { adminId: number };
+};
+
+// ДОБАВИТЬ ЭТУ ФУНКЦИЮ:
+export const verifyAdmin = (token: string): boolean => {
+  try {
+    verifyAdminToken(token);
+    return true;
+  } catch {
+    return false;
+  }
 };

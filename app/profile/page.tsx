@@ -112,16 +112,124 @@ export default function ProfilePage() {
         </div>
     );
 
-    const Reviews = () => (
-        <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-xl font-semibold mb-4">Отзывы</h3>
-            <div className="text-center py-8">
-                <p className="text-gray-500">Здесь будут отображаться отзывы от других пользователей</p>
-                <p className="text-sm text-gray-400 mt-2">Функция в разработке</p>
-            </div>
-        </div>
-    );
+    const Reviews = () => {
+        const { user } = useAuth();
+        const [reviews, setReviews] = useState<any[]>([]);
+        const [loading, setLoading] = useState(true);
 
+        useEffect(() => {
+            if (user) {
+                fetchHostReviews();
+            } else {
+                setLoading(false);
+            }
+        }, [user]);
+
+        const fetchHostReviews = async () => {
+            try {
+                // Используем тот же endpoint, что и в публичном профиле
+                const response = await fetch(`/api/reviews/host/${user!.id}`);
+                if (response.ok) {
+                    const reviewsData = await response.json();
+                    console.log('Отзывы получены:', reviewsData);
+                    setReviews(reviewsData);
+                } else {
+                    console.error('Ошибка при загрузке отзывов:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching host reviews:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (!user) {
+            return (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-xl font-semibold mb-4">Отзывы о вас</h3>
+                    <div className="text-center py-8">
+                        <p className="text-gray-500">Необходимо авторизоваться</p>
+                    </div>
+                </div>
+            );
+        }
+
+        if (loading) {
+            return (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-xl font-semibold mb-4">Отзывы о вас</h3>
+                    <div className="text-center py-4">Загрузка отзывов...</div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold mb-4">
+                    Отзывы о вас ({reviews.length})
+                </h3>
+
+                {reviews.length === 0 ? (
+                    <div className="text-center py-8">
+                        <div className="text-4xl mb-2">📝</div>
+                        <p className="text-gray-500">Пока нет отзывов о вас</p>
+                        <p className="text-sm text-gray-400 mt-2">
+                            Отзывы появятся после того, как другие пользователи оставят их
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {reviews.map((review) => (
+                            <div
+                                key={review.id}
+                                className="border border-gray-200 rounded-lg p-4"
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <div className="font-semibold">
+                                            От: {review.author?.name || 'Аноним'}
+                                        </div>
+                                        {review.apartment && (
+                                            <div className="text-sm text-gray-600">
+                                                По объявлению: {review.apartment.title}
+                                            </div>
+                                        )}
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(review.createdAt).toLocaleDateString('ru-RU')}
+                                        </div>
+                                    </div>
+                                    <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                        ✅ Одобрен
+                                    </div>
+                                </div>
+
+                                {/* Компонент рейтинга */}
+                                <div className="flex items-center gap-1 mb-2">
+                                    {[...Array(5)].map((_, i) => (
+                                        <span
+                                            key={i}
+                                            className={`text-xl ${i < review.rating
+                                                    ? 'text-yellow-400'
+                                                    : 'text-gray-300'
+                                                }`}
+                                        >
+                                            ★
+                                        </span>
+                                    ))}
+                                    <span className="text-sm text-gray-600 ml-2">
+                                        {review.rating}/5
+                                    </span>
+                                </div>
+
+                                <p className="text-gray-700">{review.comment}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+    
     const Chat = () => (
         <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-xl font-semibold mb-4">Сообщения</h3>

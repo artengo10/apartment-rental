@@ -1,3 +1,4 @@
+// chats/[chatId]/page.tsx - ОБНОВЛЕННЫЙ С КНОПКОЙ ОТЗЫВА
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -6,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { useSocket } from '@/hooks/useSocket';
+import CreateReviewModal from '@/components/modals/CreateReviewModal';
 
 interface Message {
     id: number;
@@ -47,6 +49,8 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [hasReviewed, setHasReviewed] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isMounted, setIsMounted] = useState(false);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -121,6 +125,9 @@ export default function ChatPage() {
             if (isMounted) {
                 setChat(data);
                 setMessages(data.messages || []);
+
+                // Проверяем, оставлял ли пользователь уже отзыв для этого чата
+                checkIfReviewed(data.host.id, data.id);
             }
         } catch (error) {
             console.error('❌ Error loading chat:', error);
@@ -131,6 +138,25 @@ export default function ChatPage() {
             if (isMounted) {
                 setLoading(false);
             }
+        }
+    };
+
+    // Проверяем, оставлял ли пользователь уже отзыв для этого чата
+    const checkIfReviewed = async (hostId: number, chatId: number) => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`/api/reviews/check?hostId=${hostId}&chatId=${chatId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setHasReviewed(data.hasReviewed);
+            }
+        } catch (error) {
+            console.error('Error checking review:', error);
         }
     };
 
@@ -339,17 +365,30 @@ export default function ChatPage() {
                                 </Link>
                             </div>
 
-                            <Link
-                                href={`/apartment/${chat.apartment.id}`}
-                                className="text-right hover:bg-gray-50 rounded-lg p-2 transition-colors max-w-xs"
-                            >
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                    {chat.apartment.title}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {chat.apartment.address}
-                                </p>
-                            </Link>
+                            <div className="flex items-center gap-4">
+                                <Link
+                                    href={`/apartment/${chat.apartment.id}`}
+                                    className="text-right hover:bg-gray-50 rounded-lg p-2 transition-colors max-w-xs"
+                                >
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                        {chat.apartment.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                        {chat.apartment.address}
+                                    </p>
+                                </Link>
+
+                                {/* Кнопка оставить отзыв - показываем только если пользователь еще не оставлял отзыв */}
+                                {!hasReviewed && (
+                                    <button
+                                        onClick={() => setShowReviewModal(true)}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                                    >
+                                        <span>⭐</span>
+                                        Оставить отзыв
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -432,6 +471,22 @@ export default function ChatPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Модальное окно создания отзыва */}
+            {chat && otherUser && (
+                <CreateReviewModal
+                    isOpen={showReviewModal}
+                    onClose={() => setShowReviewModal(false)}
+                    onSuccess={() => {
+                        setHasReviewed(true);
+                        alert('Отзыв отправлен на модерацию! Спасибо за ваше мнение.');
+                    }}
+                    hostId={otherUser.id}
+                    hostName={otherUser.name}
+                    apartmentId={chat.apartment.id}
+                    chatId={chat.id}
+                />
+            )}
         </div>
     );
 }

@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  STUDIO
+}
+
 model User {
   id              Int       @id @default(autoincrement())
   email           String    @unique
@@ -20,12 +32,13 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  apartments  Apartment[]
-  favorites   Favorite[]
-  reviews     Review[]
-  tenantChats Chat[]      @relation("TenantChats")
-  hostChats   Chat[]      @relation("HostChats")
-  messages    Message[]
+  apartments      Apartment[]
+  favorites       Favorite[]
+  authoredReviews Review[]  @relation("ReviewAuthor")
+  hostedReviews   Review[]  @relation("ReviewHost")
+  tenantChats     Chat[]    @relation("TenantChats")
+  hostChats       Chat[]    @relation("HostChats")
+  messages        Message[]
 
   @@map("users")
 }
@@ -72,7 +85,6 @@ model Admin {
   @@map("admins")
 }
 
-// Новая модель для избранного
 model Favorite {
   id          Int      @id @default(autoincrement())
   userId      Int
@@ -87,17 +99,21 @@ model Favorite {
   @@map("favorites")
 }
 
-// Новая модель для отзывов
 model Review {
   id          Int      @id @default(autoincrement())
   rating      Int
   comment     String
-  status      String   @default("PENDING")
+  status      ReviewStatus @default(PENDING)
   authorId    Int
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  apartmentId Int
-  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  author      User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  hostId      Int
+  host        User     @relation("ReviewHost", fields: [hostId], references: [id], onDelete: Cascade)
+  apartmentId Int?
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  chatId      Int?
+  chat        Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("reviews")
 }
@@ -114,6 +130,7 @@ model Chat {
   updatedAt   DateTime  @updatedAt
   
   messages    Message[]
+  reviews     Review[]  // ДОБАВЛЕНО: обратное отношение для Review.chat
   
   @@unique([apartmentId, tenantId])
   @@map("chats")
@@ -130,10 +147,4 @@ model Message {
   createdAt DateTime @default(now())
   
   @@map("messages")
-}
-
-enum PropertyType {
-  APARTMENT
-  HOUSE
-  STUDIO
 }
