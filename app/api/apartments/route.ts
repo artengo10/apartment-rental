@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const apartments = await prisma.apartment.findMany({
       where: {
-        status: "APPROVED", // Только одобренные
+        status: "APPROVED",
         isPublished: true,
       },
       include: {
@@ -25,7 +25,28 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(apartments);
+    // Преобразуем данные в формат, ожидаемый фронтендом
+    const transformedApartments = apartments.map((apartment) => ({
+      id: apartment.id,
+      lat: apartment.lat || 56.2965,
+      lng: apartment.lng || 43.9361,
+      title: apartment.title,
+      price: `${apartment.price}₽`,
+      address: apartment.address,
+      description: apartment.description,
+      type: apartment.type.toLowerCase() as "apartment" | "house" | "studio",
+      district: apartment.district,
+      rooms: apartment.rooms,
+      area: apartment.area,
+      floor: apartment.floor,
+      images: apartment.images || [], // УБЕДИТЕСЬ что это поле передается как массив
+      amenities: apartment.amenities,
+      hostName: apartment.host.name,
+      hostId: apartment.hostId,
+      hostRating: 4.5,
+    }));
+
+    return NextResponse.json(transformedApartments);
   } catch (error) {
     console.error("Error fetching apartments:", error);
     return NextResponse.json(
@@ -71,6 +92,14 @@ export async function POST(request: NextRequest) {
       ? parseInt(formData.get("floor") as string)
       : null;
 
+    // Валидация обязательных полей
+    if (!title || !description || !price || !type || !district || !address) {
+      return NextResponse.json(
+        { error: "Все обязательные поля должны быть заполнены" },
+        { status: 400 }
+      );
+    }
+
     // Обрабатываем удобства
     const amenities: string[] = [];
     formData.getAll("amenities").forEach((item) => {
@@ -79,8 +108,38 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Обрабатываем изображения (пока сохраняем как массив путей)
-    const images: string[] = []; // Здесь будет логика загрузки файлов
+    // Обрабатываем изображения - загружаем на imgBB и получаем ссылки
+    const imageFiles = formData.getAll("images") as File[];
+    const images: string[] = [];
+
+    // Загружаем каждое изображение на imgBB
+    for (const file of imageFiles) {
+      if (file instanceof File && file.size > 0) {
+        try {
+          // Проверяем размер файла (максимум 10MB)
+          if (file.size > 10 * 1024 * 1024) {
+            console.warn(`File ${file.name} is too large, skipping`);
+            continue;
+          }
+
+          const imageUrl = await uploadToImgBB(file);
+          if (imageUrl) {
+            images.push(imageUrl);
+          }
+        } catch (error) {
+          console.error("Error uploading image to imgBB:", error);
+          // Продолжаем даже если одно изображение не загрузилось
+        }
+      }
+    }
+
+    // Проверяем, что есть хотя бы одно изображение
+    if (images.length === 0) {
+      return NextResponse.json(
+        { error: "Добавьте хотя бы одно изображение" },
+        { status: 400 }
+      );
+    }
 
     // Создаем квартиру со статусом PENDING
     const apartment = await prisma.apartment.create({
@@ -107,7 +166,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Объявление отправлено на модерацию",
-      apartment,
+      apartment: {
+        id: apartment.id,
+        title: apartment.title,
+        status: apartment.status,
+      },
     });
   } catch (error) {
     console.error("Error creating apartment:", error);
@@ -116,4 +179,36 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Функция для загрузки изображения на imgBB
+async function uploadToImgBB(file: File): Promise<string> {
+  // Конвертируем файл в base64
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const base64Image = buffer.toString("base64");
+
+  // Создаем FormData для отправки на imgBB
+  const formData = new FormData();
+  formData.append("image", base64Image);
+
+  const response = await fetch(
+    `https://api.imgbb.com/1/upload?key=27bbb71a6392846bef0e3f191e0568a7`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`ImgBB upload failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error("ImgBB upload failed");
+  }
+
+  return data.data.url;
 }

@@ -53,7 +53,7 @@ export async function GET(
       rooms: apartment.rooms,
       area: apartment.area,
       floor: apartment.floor,
-      images: apartment.images, // images -> photos для совместимости
+      images: apartment.images, // images 
       amenities: apartment.amenities,
       hostName: apartment.host.name,
       hostId: apartment.hostId,

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, memo } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 
 interface AddApartmentWizardProps {
     isOpen: boolean;
@@ -11,7 +12,7 @@ interface AddApartmentWizardProps {
 
 type WizardStep = 1 | 2 | 3;
 
-// Мемоизированные компоненты шагов для решения проблемы с клавиатурой
+// Мемоизированные компоненты шагов
 const Step1 = memo(({ formData, handleInputChange }: any) => (
     <div className="space-y-4">
         <h3 className="text-lg font-semibold">Основная информация</h3>
@@ -84,6 +85,7 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                     onChange={handleNumberInputChange('price')}
                     className="w-full p-2 border rounded"
                     placeholder="2500"
+                    min="1"
                 />
             </div>
 
@@ -92,10 +94,11 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                     <label className="block text-sm font-medium mb-1">Комнаты</label>
                     <input
                         type="number"
-                        value={formData.rooms}
+                        value={formData.rooms || ''}
                         onChange={handleNumberInputChange('rooms')}
                         className="w-full p-2 border rounded"
                         placeholder="2"
+                        min="0"
                     />
                 </div>
 
@@ -103,10 +106,11 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                     <label className="block text-sm font-medium mb-1">Площадь (м²)</label>
                     <input
                         type="number"
-                        value={formData.area}
+                        value={formData.area || ''}
                         onChange={handleNumberInputChange('area')}
                         className="w-full p-2 border rounded"
                         placeholder="45"
+                        min="1"
                     />
                 </div>
 
@@ -114,10 +118,11 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                     <label className="block text-sm font-medium mb-1">Этаж</label>
                     <input
                         type="number"
-                        value={formData.floor}
+                        value={formData.floor || ''}
                         onChange={handleNumberInputChange('floor')}
                         className="w-full p-2 border rounded"
                         placeholder="3"
+                        min="0"
                     />
                 </div>
             </div>
@@ -145,7 +150,7 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                                 onChange={handleCheckboxChange(amenity)}
                                 className="rounded"
                             />
-                            <span>{amenity}</span>
+                            <span className="text-sm">{amenity}</span>
                         </label>
                     ))}
                 </div>
@@ -154,10 +159,10 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
     );
 });
 
-const Step3 = memo(({ formData, setFormData }: any) => (
+const Step3 = memo(({ formData, setFormData, isUploading }: any) => (
     <div className="space-y-4">
         <h3 className="text-lg font-semibold">Фотографии</h3>
-        <p className="text-sm text-gray-600">Загрузите до 10 фотографий вашего жилья</p>
+        <p className="text-sm text-gray-600">Загрузите фотографии вашего жилья. Они автоматически загрузятся на imgBB</p>
 
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <input
@@ -166,43 +171,78 @@ const Step3 = memo(({ formData, setFormData }: any) => (
                 accept="image/*"
                 onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    setFormData((prev: any) => ({ ...prev, images: [...prev.images, ...files] }));
+                    const newFiles = [...formData.images, ...files].slice(0, 10); // Ограничение 10 файлов
+                    setFormData((prev: any) => ({ ...prev, images: newFiles }));
                 }}
                 className="hidden"
                 id="apartment-images"
+                disabled={isUploading}
             />
-            <label htmlFor="apartment-images" className="cursor-pointer">
-                <div className="flex flex-col items-center">
-                    <span className="text-blue-600 font-medium">Нажмите для загрузки фото</span>
-                    <span className="text-sm text-gray-500">или перетащите файлы сюда</span>
-                </div>
+            <label
+                htmlFor="apartment-images"
+                className={`cursor-pointer flex flex-col items-center ${isUploading ? 'opacity-50' : 'hover:bg-gray-50'} transition-colors p-4 rounded-lg`}
+            >
+                {isUploading ? (
+                    <>
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <span className="text-sm text-gray-600 mt-2">Загрузка изображений...</span>
+                    </>
+                ) : (
+                    <>
+                        <Upload className="w-8 h-8 text-gray-400" />
+                        <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-900">
+                                Нажмите для загрузки фото
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                PNG, JPG, JPEG до 10MB
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                Максимум 10 фото
+                            </p>
+                        </div>
+                    </>
+                )}
             </label>
         </div>
 
         {formData.images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-4">
-                {formData.images.map((file: File, index: number) => (
-                    <div key={index} className="relative">
-                        <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const newImages = [...formData.images];
-                                newImages.splice(index, 1);
-                                setFormData((prev: any) => ({ ...prev, images: newImages }));
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                        >
-                            ×
-                        </button>
-                    </div>
-                ))}
+            <div>
+                <p className="text-sm text-gray-600 mb-2">
+                    Загружено фото: {formData.images.length}/10
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                    {formData.images.map((file: File, index: number) => (
+                        <div key={index} className="relative group">
+                            <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newImages = formData.images.filter((_: File, i: number) => i !== index);
+                                    setFormData((prev: any) => ({ ...prev, images: newImages }));
+                                }}
+                                disabled={isUploading}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
         )}
+
+        {/* Информация о загрузке */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                Изображения автоматически загружаются на imgBB и прикрепляются к объявлению
+            </p>
+        </div>
     </div>
 ));
 
@@ -210,6 +250,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
     const { user } = useAuth();
     const [currentStep, setCurrentStep] = useState<WizardStep>(1);
     const [loading, setLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -233,9 +274,10 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
     }, []);
 
     const handleNumberInputChange = useCallback((field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
         setFormData(prev => ({
             ...prev,
-            [field]: e.target.value
+            [field]: value === '' ? '' : value
         }));
     }, []);
 
@@ -248,10 +290,24 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
         }));
     }, []);
 
+    const validateStep = (step: WizardStep): boolean => {
+        switch (step) {
+            case 1:
+                return !!(formData.title && formData.description && formData.district);
+            case 2:
+                return !!(formData.price && formData.address);
+            case 3:
+                return formData.images.length > 0;
+            default:
+                return false;
+        }
+    };
+
     const handleSubmit = async () => {
         if (!user) return;
 
         setLoading(true);
+        setIsUploading(true);
         try {
             const formDataToSend = new FormData();
 
@@ -262,6 +318,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
             formDataToSend.append('type', formData.type);
             formDataToSend.append('district', formData.district);
             formDataToSend.append('address', formData.address);
+
             if (formData.rooms) formDataToSend.append('rooms', formData.rooms);
             if (formData.area) formDataToSend.append('area', formData.area);
             if (formData.floor) formDataToSend.append('floor', formData.floor);
@@ -270,13 +327,13 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
                 formDataToSend.append('amenities', amenity);
             });
 
+            // Добавляем изображения
             formData.images.forEach((file: File) => {
                 formDataToSend.append('images', file);
             });
 
             const token = localStorage.getItem('auth_token');
 
-            // ИСПРАВЛЕННЫЙ URL - используем API route
             const response = await fetch('/api/apartments', {
                 method: 'POST',
                 headers: {
@@ -315,11 +372,14 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
             alert('Произошла ошибка при отправке объявления');
         } finally {
             setLoading(false);
+            setIsUploading(false);
         }
     };
 
     const nextStep = () => {
-        if (currentStep < 3) setCurrentStep((currentStep + 1) as WizardStep);
+        if (currentStep < 3 && validateStep(currentStep)) {
+            setCurrentStep((currentStep + 1) as WizardStep);
+        }
     };
 
     const prevStep = () => {
@@ -329,7 +389,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">Добавить жилье</h2>
@@ -362,6 +422,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
                     <Step3
                         formData={formData}
                         setFormData={setFormData}
+                        isUploading={isUploading}
                     />
                 )}
 
@@ -369,7 +430,8 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
                     <button
                         type="button"
                         onClick={currentStep === 1 ? onClose : prevStep}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                        disabled={loading}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                     >
                         {currentStep === 1 ? 'Отмена' : 'Назад'}
                     </button>
@@ -378,7 +440,8 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
                         <button
                             type="button"
                             onClick={nextStep}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            disabled={!validateStep(currentStep)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Далее
                         </button>
@@ -386,8 +449,8 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={loading || formData.images.length === 0}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                            disabled={loading || !validateStep(3)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Отправка...' : 'Отправить на модерацию'}
                         </button>

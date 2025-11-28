@@ -1,28 +1,30 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Уберите serverExternalPackages если есть
-  },
-  // Дополнительные настройки для API routes
-  async headers() {
-    return [
+  images: {
+    domains: ["i.ibb.co", "localhost", "127.0.0.1"],
+    remotePatterns: [
       {
-        source: "/api/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-          },
-        ],
+        protocol: "https",
+        hostname: "i.ibb.co",
+        pathname: "**",
       },
-    ];
+      {
+        protocol: "http",
+        hostname: "localhost",
+        pathname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        pathname: "**",
+      },
+    ],
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
 };
 

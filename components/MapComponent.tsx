@@ -1,4 +1,4 @@
-// components/MapComponent.tsx - ИСПРАВЛЕННЫЙ С СТАБИЛЬНЫМИ ЗАВИСИМОСТЯМИ
+// components/MapComponent.tsx
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -6,6 +6,7 @@ import { Apartment } from '@/types/apartment';
 import { yandexMapsLoader } from '@/lib/yandex-maps-loader';
 import { RefreshCw, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const YANDEX_MAPS_API_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
 
@@ -17,6 +18,7 @@ interface MapComponentProps {
 
 const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId }: MapComponentProps) => {
   const router = useRouter();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const placemarksRef = useRef<any[]>([]);
@@ -49,11 +51,24 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
       alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${title}\nАдрес: ${address}`);
     };
 
+    (window as any).toggleFavoriteMap = async (apartmentId: number) => {
+      try {
+        await toggleFavorite(apartmentId);
+        // Обновляем карту после изменения избранного
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } catch (error) {
+        console.error('Error toggling favorite from map:', error);
+      }
+    };
+
     return () => {
       (window as any).openDetails = null;
       (window as any).makeCall = null;
+      (window as any).toggleFavoriteMap = null;
     };
-  }, [router]);
+  }, [router, toggleFavorite]);
 
   useEffect(() => {
     let isMounted = true;
@@ -93,7 +108,7 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
 
         mapInstanceRef.current = mapInstance;
 
-        // УМЕНЬШЕННЫЕ ЦВЕТНЫЕ КРУЖКИ ДЛЯ ВСЕХ УСТРОЙСТВ
+        // УМЕНЬШЕННЫЕ ЦВЕТНЫЕ КРУЖКИ
         const createCustomIcon = (type: string, isSelected: boolean = false, isHighlighted: boolean = false) => {
           let fillColor;
 
@@ -105,7 +120,6 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
             fillColor = getColorByType(type);
           }
 
-          // ЗНАЧИТЕЛЬНО УМЕНЬШЕННЫЕ РАЗМЕРЫ ДЛЯ ВСЕХ УСТРОЙСТВ
           let size;
           if (isHighlighted) {
             size = isMobile ? 28 : 32;
@@ -115,7 +129,6 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
             size = isMobile ? 20 : 24;
           }
 
-          // ПРОСТОЙ КРУЖОК БЕЗ ИКОНОК ВНУТРИ
           const circleSvg = `
             <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
               <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${fillColor}" stroke="white" stroke-width="1"/>
@@ -143,6 +156,15 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
           }
         };
 
+        const getTypeDisplayName = (type: string) => {
+          switch (type) {
+            case 'apartment': return 'Квартира';
+            case 'house': return 'Дом';
+            case 'studio': return 'Студия';
+            default: return type;
+          }
+        };
+
         // Очищаем предыдущие метки
         placemarksRef.current.forEach(placemark => {
           mapInstance.geoObjects.remove(placemark);
@@ -153,9 +175,10 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
         stableApartments.forEach(apartment => {
           const isSelected = stableSelectedId === apartment.id;
           const isHighlighted = stableHighlightedId === apartment.id;
+          const apartmentIsFavorite = isFavorite(apartment.id);
           const iconUrl = createCustomIcon(apartment.type, isSelected, isHighlighted);
 
-          // ЗНАЧИТЕЛЬНО УМЕНЬШЕННЫЕ РАЗМЕРЫ И СМЕЩЕНИЯ ДЛЯ ВСЕХ УСТРОЙСТВ
+          // УМЕНЬШЕННЫЕ РАЗМЕРЫ И СМЕЩЕНИЯ
           const iconSize = isHighlighted ?
             (isMobile ? [28, 28] : [32, 32]) :
             isSelected ?
@@ -168,40 +191,67 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
               (isMobile ? [-12, -12] : [-14, -14]) :
               (isMobile ? [-10, -10] : [-12, -12]);
 
-          // Создаем контент для балуна
+          // УПРОЩЕННЫЙ КОНТЕНТ БАЛУНА - БЕЗ ОПИСАНИЯ
           const balloonContent = `
-            <div style="max-width: 300px; padding: 8px;">
-              <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}">
-                ${apartment.title} ${isHighlighted ? '⭐' : ''} ${isSelected ? '✓' : ''}
-              </div>
-              <div style="padding: 8px 0; font-size: 14px; line-height: 1.4;">
-                <p style="margin: 6px 0; font-size: 18px; color: #10b981; font-weight: bold;">${apartment.price}/сутки</p>
-                <p style="margin: 6px 0; color: #374151;"><strong>Адрес:</strong> ${apartment.address}</p>
-                <p style="margin: 6px 0; color: #6b7280;">${apartment.description}</p>
-                <div style="margin: 8px 0; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')}; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; border-radius: 2px;">
-                  <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; font-weight: 500;">
-                    ${apartment.type === 'apartment' ? 'Квартира' : apartment.type === 'house' ? 'Дом' : 'Студия'}
-                    ${isSelected ? ' (выбрана)' : ''}
-                    ${isHighlighted ? ' (показана на карте)' : ''}
-                  </span>
-                </div>
-                <div style="margin-top: 12px; display: flex; gap: 8px;">
-                  <button 
-                    onclick="window.openDetails(${apartment.id})"
-                    style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
-                  >
-                    Подробнее
-                  </button>
-                  <button 
-                    onclick="window.makeCall('${apartment.title.replace(/'/g, "\\'")}', '${apartment.address.replace(/'/g, "\\'")}')"
-                    style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; flex: 1;"
-                  >
-                    Позвонить
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
+  <div style="max-width: 280px; padding: 12px;">
+    <!-- Заголовок как ссылка -->
+    <div style="margin-bottom: 8px;">
+      <a 
+        href="javascript:void(0);" 
+        onclick="window.openDetails(${apartment.id})"
+        style="font-size: 16px; font-weight: bold; color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; text-decoration: none; display: block;"
+        onmouseover="this.style.textDecoration='underline'"
+        onmouseout="this.style.textDecoration='none'"
+      >
+        ${apartment.title}
+      </a>
+    </div>
+
+    <!-- Цена -->
+    <div style="margin-bottom: 8px;">
+      <span style="font-size: 18px; color: #10b981; font-weight: bold;">${apartment.price}</span>
+      <span style="color: #6b7280; font-size: 14px;">/ сутки</span>
+    </div>
+
+    <!-- Адрес -->
+    <div style="margin-bottom: 12px; color: #374151; font-size: 14px;">
+      📍 ${apartment.address}
+    </div>
+
+    <!-- Тип жилья -->
+    <div style="margin-bottom: 12px; padding: 4px 8px; background: ${isSelected ? '#F59E0B20' : (isHighlighted ? getHighlightColorByType(apartment.type) + '20' : getColorByType(apartment.type) + '20')}; border-left: 3px solid ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; border-radius: 4px;">
+      <span style="color: ${isSelected ? '#F59E0B' : (isHighlighted ? getHighlightColorByType(apartment.type) : getColorByType(apartment.type))}; font-weight: 500; font-size: 12px;">
+        ${getTypeDisplayName(apartment.type)}
+        ${isSelected ? ' • Выбрана' : ''}
+        ${isHighlighted ? ' • На карте' : ''}
+      </span>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <button 
+        onclick="window.openDetails(${apartment.id})"
+        style="padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;"
+      >
+        👁️ Подробнее
+      </button>
+      
+      <button 
+        onclick="window.makeCall('${apartment.title.replace(/'/g, "\\'")}', '${apartment.address.replace(/'/g, "\\'")}')"
+        style="padding: 8px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;"
+      >
+        📞 Позвонить
+      </button>
+      
+      <button 
+        onclick="window.toggleFavoriteMap(${apartment.id})"
+        style="padding: 8px 12px; background: ${apartmentIsFavorite ? '#ef4444' : '#6b7280'}; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;"
+      >
+        ${apartmentIsFavorite ? '❤️' : '🤍'} ${apartmentIsFavorite ? 'В избранном' : 'В избранное'}
+      </button>
+    </div>
+  </div>
+`;
 
           const placemark = new window.ymaps.Placemark(
             [apartment.lat, apartment.lng],
@@ -216,16 +266,13 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
               iconImageOffset: iconOffset,
               balloonCloseButton: true,
               hideIconOnBalloonOpen: false,
-              // ВКЛЮЧАЕМ автоматическое открытие балуна
               openBalloonOnClick: true
             }
           );
 
-          // УПРОЩЕННЫЙ ОБРАБОТЧИК КЛИКА: только открытие балуна, без выделения
+          // Обработчик клика
           placemark.events.add('click', (e: any) => {
             e.stopPropagation();
-            // Балун открывается автоматически благодаря openBalloonOnClick: true
-            // Выделение объекта УБРАНО
           });
 
           mapInstance.geoObjects.add(placemark);
@@ -271,7 +318,7 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
       }
       placemarksRef.current = [];
     };
-  }, [stableApartments, stableSelectedId, stableHighlightedId, isMobile]);
+  }, [stableApartments, stableSelectedId, stableHighlightedId, isMobile, isFavorite]);
 
   if (mapError) {
     return (
@@ -298,11 +345,10 @@ const MapComponent = ({ apartments, selectedApartmentId, highlightedApartmentId 
 
   return (
     <div className="w-full h-full">
-      {/* Легенда С ПРОСТЫМИ КРУЖКАМИ ДЛЯ ВСЕХ УСТРОЙСТВ */}
+      {/* Легенда */}
       <div className="bg-white border-2 border-black rounded-lg p-3 mb-3 shadow-sm">
         <h3 className="text-base font-semibold mb-2 text-center sm:text-left">Обозначения:</h3>
 
-        {/* УНИФИЦИРОВАННАЯ ЛЕГЕНДА ДЛЯ ВСЕХ УСТРОЙСТВ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>

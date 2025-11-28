@@ -5,58 +5,44 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const files = formData.getAll("images") as File[];
+    const file = formData.get("file") as File;
 
-    if (!files || files.length === 0) {
-      return NextResponse.json(
-        { error: "No images provided" },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const uploadedUrls: string[] = [];
+    // Конвертируем File в base64
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Image = buffer.toString("base64");
 
-    for (const file of files) {
-      // Конвертируем файл в base64
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const base64Image = buffer.toString("base64");
+    // Загружаем на imgBB
+    const imgbbFormData = new FormData();
+    imgbbFormData.append("image", base64Image);
 
-      // Отправляем на ImgBB
-      const uploadFormData = new FormData();
-      uploadFormData.append("image", base64Image);
-
-      const response = await fetch(
-        `https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`,
-        {
-          method: "POST",
-          body: uploadFormData,
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        uploadedUrls.push(result.data.url);
-      } else {
-        console.error("ImgBB upload failed:", result);
-        return NextResponse.json(
-          {
-            error: `Failed to upload image: ${
-              result.error?.message || "Unknown error"
-            }`,
-          },
-          { status: 500 }
-        );
+    const imgbbResponse = await fetch(
+      `https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`,
+      {
+        method: "POST",
+        body: imgbbFormData,
       }
+    );
+
+    const imgbbData = await imgbbResponse.json();
+
+    if (!imgbbData.success) {
+      throw new Error("ImgBB upload failed");
     }
 
     return NextResponse.json({
       success: true,
-      urls: uploadedUrls,
+      imageUrl: imgbbData.data.url,
     });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Ошибка при загрузке изображения" },
+      { status: 500 }
+    );
   }
 }

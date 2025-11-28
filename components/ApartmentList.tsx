@@ -1,10 +1,29 @@
-// components/ApartmentList.tsx - ИСПРАВЛЕННЫЙ ДЛЯ РАБОТЫ С ЕДИНЫМ ИНТЕРФЕЙСОМ
+// components/ApartmentList.tsx
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, MessageCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import Image from 'next/image';
-import { Apartment } from '@/types/apartment'; // Импортируем единый интерфейс
+import FavoriteHeart from './FavoriteHeart';
+
+interface Apartment {
+    id: number;
+    lat: number;
+    lng: number;
+    title: string;
+    price: string;
+    address: string;
+    description: string;
+    type: "apartment" | "house" | "studio";
+    district: string;
+    rooms?: number;
+    area?: number;
+    floor?: number;
+    images: string[];
+    amenities?: string[];
+    hostName?: string;
+    hostRating?: number;
+    hostId: number;
+}
 
 interface ApartmentListProps {
     apartments: Apartment[];
@@ -13,6 +32,8 @@ interface ApartmentListProps {
     onApartmentSelect?: (apartmentId: number) => void;
     onShowOnMap?: (apartmentId: number) => void;
     onResetHighlight?: () => void;
+    onFavoriteRemove?: (apartmentId: number) => void;
+    showFavoriteHeart?: boolean;
 }
 
 const generateSellerReviews = (apartmentId: number) => {
@@ -54,19 +75,21 @@ const getTypeDisplayName = (type: string) => {
     }
 };
 
-// Обновляем функцию для работы с единым интерфейсом Apartment
 const ApartmentList = ({
     apartments,
     selectedApartmentId,
     highlightedApartmentId,
     onApartmentSelect,
     onShowOnMap,
-    onResetHighlight
+    onResetHighlight,
+    onFavoriteRemove,
+    showFavoriteHeart = true
 }: ApartmentListProps) => {
     const router = useRouter();
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(6);
     const [isMobile, setIsMobile] = useState(false);
+    const [imageErrors, setImageErrors] = useState<{ [key: number]: boolean }>({});
 
     useEffect(() => {
         const updateLayout = () => {
@@ -84,18 +107,14 @@ const ApartmentList = ({
         setCurrentPage(1);
     }, [apartments.length]);
 
-    const handleCall = useCallback((apartment: Apartment, e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // Используем заглушку для телефона, так как в интерфейсе нет host.phone
-        alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${apartment.title}\nАдрес: ${apartment.address}`);
+    const handleImageError = useCallback((apartmentId: number, imageUrl: string) => {
+        console.log(`❌ Image load ERROR for apartment ${apartmentId}:`, imageUrl);
+        setImageErrors(prev => ({ ...prev, [apartmentId]: true }));
     }, []);
 
-    const handleDetails = useCallback((apartment: Apartment, e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        router.push(`/apartment/${apartment.id}`);
-    }, [router]);
+    const handleImageLoad = useCallback((apartmentId: number, imageUrl: string) => {
+        console.log(`✅ Image load SUCCESS for apartment ${apartmentId}:`, imageUrl);
+    }, []);
 
     const handleCardClick = useCallback((apartment: Apartment) => {
         router.push(`/apartment/${apartment.id}`);
@@ -108,6 +127,15 @@ const ApartmentList = ({
             onShowOnMap(apartmentId);
         }
     }, [onShowOnMap]);
+
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ИЗБРАННОГО
+    const handleFavoriteToggle = useCallback((isFavorite: boolean, apartmentId: number) => {
+        console.log(`Избранное изменено: квартира ${apartmentId}, теперь ${isFavorite ? 'в избранном' : 'не в избранном'}`);
+
+        if (!isFavorite && onFavoriteRemove) {
+            onFavoriteRemove(apartmentId);
+        }
+    }, [onFavoriteRemove]);
 
     // Пагинация
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -218,10 +246,20 @@ const ApartmentList = ({
                         const isSelected = selectedApartmentId === apartment.id;
                         const isHighlighted = highlightedApartmentId === apartment.id;
                         const sellerReviews = generateSellerReviews(apartment.id);
-                        // Используем photos вместо images
-                        const mainPhoto = apartment.photos && apartment.photos.length > 0
-                            ? apartment.photos[0]
-                            : getPlaceholderImage(apartment.type);
+
+                        const hasImages = Array.isArray(apartment.images) && apartment.images.length > 0;
+                        const mainPhoto = hasImages ? apartment.images[0] : getPlaceholderImage(apartment.type);
+                        const hasImageError = imageErrors[apartment.id];
+
+                        console.log(`🎯 RENDERING APARTMENT ${apartment.id}:`, {
+                            title: apartment.title,
+                            hasImages,
+                            images: apartment.images,
+                            mainPhoto,
+                            hasImageError,
+                            imageErrorMap: imageErrors
+                        });
+
                         const displayType = getTypeDisplayName(apartment.type);
 
                         return (
@@ -237,26 +275,28 @@ const ApartmentList = ({
                                 `}
                                 onClick={() => handleCardClick(apartment)}
                             >
-                                {/* ФОТОГРАФИЯ С ФИКСИРОВАННЫМ РАЗМЕРОМ */}
+                                {/* ФОТОГРАФИЯ */}
                                 <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
-                                    {apartment.photos && apartment.photos.length > 0 ? (
+                                    {hasImages && !hasImageError ? (
                                         <img
                                             src={mainPhoto}
                                             alt={apartment.title}
-                                            className="object-cover hover:scale-105 transition-transform duration-300 w-full h-full"
+                                            className="object-cover w-full h-full"
+                                            onError={() => handleImageError(apartment.id, mainPhoto)}
+                                            onLoad={() => handleImageLoad(apartment.id, mainPhoto)}
+                                            loading="lazy"
+                                            style={{ width: '100%', height: '100%' }}
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
-                                            <div className="text-center">
-                                                <div className="text-3xl mb-2">
-                                                    {apartment.type === 'apartment' ? '🏢' :
-                                                        apartment.type === 'house' ? '🏠' : '📐'}
-                                                </div>
-                                                <p className="text-gray-500 text-sm">Нет фото</p>
-                                            </div>
-                                        </div>
+                                        <img
+                                            src={getPlaceholderImage(apartment.type)}
+                                            alt={apartment.title}
+                                            className="object-cover w-full h-full"
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
                                     )}
 
+                                    {/* Бейдж типа жилья */}
                                     <div className="absolute top-2 left-2">
                                         <span className={`
                                             px-2 py-1 rounded-full text-xs font-bold text-white
@@ -266,6 +306,16 @@ const ApartmentList = ({
                                             {displayType}
                                         </span>
                                     </div>
+
+                                    {/* ИКОНКА ИЗБРАННОГО */}
+                                    {showFavoriteHeart && (
+                                        <div className="absolute top-2 right-2">
+                                            <FavoriteHeart
+                                                apartmentId={apartment.id}
+                                                onToggle={(isFavorite: boolean) => handleFavoriteToggle(isFavorite, apartment.id)}
+                                            />
+                                        </div>
+                                    )}
 
                                     {isHighlighted && (
                                         <div className="absolute bottom-2 left-2">
@@ -309,7 +359,7 @@ const ApartmentList = ({
                                             </p>
                                         </div>
 
-                                        {/* КНОПКА КАРТЫ С ОТСТУПОМ СВЕРХУ НА ДЕСКТОПЕ */}
+                                        {/* КНОПКА КАРТЫ */}
                                         <button
                                             onClick={(e) => handleShowOnMap(apartment.id, e)}
                                             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-2 flex-shrink-0 sm:mt-1

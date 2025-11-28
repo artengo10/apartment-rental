@@ -68,6 +68,7 @@ export default function ResultsPage() {
     }, []);
 
     // Функция преобразования данных из API в формат Apartment
+
     const transformApiDataToApartment = (apiApartment: ApiApartment): Apartment => {
         const transformType = (type: string): "apartment" | "house" | "studio" => {
             const lowerType = type.toLowerCase();
@@ -90,7 +91,7 @@ export default function ResultsPage() {
             rooms: apiApartment.rooms,
             area: apiApartment.area,
             floor: apiApartment.floor,
-            photos: apiApartment.images || [], // images -> photos
+            images: apiApartment.images || [], 
             amenities: apiApartment.amenities || [],
             hostName: apiApartment.host?.name || 'Неизвестно',
             hostId: apiApartment.hostId,

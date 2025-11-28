@@ -1,22 +1,26 @@
+// components/Header.tsx - с правильным импортом useFavorites
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useFavorites } from '@/hooks/useFavorites';
 import LoginModal from './modals/LoginModal';
 import RegisterModal from './modals/RegisterModal';
 import AddApartmentModal from './modals/AddApartmentWizard';
+import { Heart, MessageCircle, User, Plus } from 'lucide-react';
 
 export default function Header() {
     const { user, logout } = useAuth();
+    const { favoriteIds } = useFavorites();
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showAddApartmentModal, setShowAddApartmentModal] = useState(false);
 
     const handleLogout = () => {
         logout();
+        localStorage.removeItem('favorite_ids');
     };
 
-    // Функция для получения только имени (первого слова)
     const getFirstName = (fullName: string) => {
         return fullName.split(' ')[0];
     };
@@ -41,41 +45,52 @@ export default function Header() {
                                 {/* Кнопка добавления жилья */}
                                 <button
                                     onClick={() => setShowAddApartmentModal(true)}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm flex items-center gap-1"
                                 >
-                                    + Добавить жилье
+                                    <Plus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Добавить жилье</span>
                                 </button>
+
+                                {/* Иконка избранных */}
+                                <Link
+                                    href="/favorites"
+                                    className="relative bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-md font-medium transition-colors flex items-center justify-center"
+                                    title="Избранное"
+                                >
+                                    <Heart className="w-5 h-5" />
+                                    {favoriteIds.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                                            {favoriteIds.length}
+                                        </span>
+                                    )}
+                                </Link>
 
                                 {/* Иконка чата */}
                                 <Link
                                     href="/chats"
-                                    className="relative bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md font-medium transition-colors flex items-center justify-center"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md font-medium transition-colors flex items-center justify-center"
                                     title="Сообщения"
                                 >
-                                    <span className="text-lg">💬</span>
-                                    {/* Показываем бейдж только если есть непрочитанные сообщения */}
-                                    {/* Позже можно добавить логику для подсчета непрочитанных */}
+                                    <MessageCircle className="w-5 h-5" />
                                 </Link>
 
                                 <div className="text-right hidden sm:block">
                                     <p className="text-sm font-medium">
                                         Привет, {getFirstName(user.name)}!
                                     </p>
-                                    {/* Убрали отображение роли */}
                                 </div>
-                                {user && (
-                                    <div className="flex items-center gap-4">
-                                        <Link
-                                            href="/profile"
-                                            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
-                                        >
-                                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                                                {user.name?.charAt(0).toUpperCase() || 'U'}
-                                            </div>
-                                            <span className="hidden sm:block">{user.name}</span>
-                                        </Link>
-                                    </div>
-                                )}
+
+                                <div className="flex items-center gap-4">
+                                    <Link
+                                        href="/profile"
+                                        className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                                            <User className="w-4 h-4" />
+                                        </div>
+                                        <span className="hidden sm:block">{user.name}</span>
+                                    </Link>
+                                </div>
                             </div>
                         ) : (
                             <>
@@ -97,6 +112,7 @@ export default function Header() {
                 </div>
             </header>
 
+            {/* Модальные окна */}
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
@@ -113,13 +129,10 @@ export default function Header() {
                     setShowLoginModal(true);
                 }}
             />
-
-            {/* Модальное окно для добавления жилья */}
             <AddApartmentModal
                 isOpen={showAddApartmentModal}
                 onClose={() => setShowAddApartmentModal(false)}
                 onSuccess={() => {
-                    // Можно добавить уведомление об успешном добавлении
                     console.log('Жилье успешно добавлено!');
                 }}
             />
