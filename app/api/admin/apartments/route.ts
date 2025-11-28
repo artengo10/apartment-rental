@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminToken } from "@/lib/admin-auth-utils";
 
 export const dynamic = "force-dynamic";
 
 // GET - получить объявления на модерации
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status") || "pending";
+    // Проверяем авторизацию админа
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+    }
 
+    try {
+      verifyAdminToken(token);
+    } catch (error) {
+      return NextResponse.json({ error: "Неверный токен" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status") || "PENDING";
+
+    // Получаем квартиры с указанным статусом
     const apartments = await prisma.apartment.findMany({
       where: {
-        isPublished: status === "published" ? true : false,
+        status: status, // используем поле status
       },
       include: {
         host: {
@@ -40,7 +54,19 @@ export async function GET(request: NextRequest) {
 // PATCH - изменить статус объявления
 export async function PATCH(request: NextRequest) {
   try {
-    const { apartmentId, action } = await request.json();
+    // Проверяем авторизацию админа
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+    }
+
+    try {
+      verifyAdminToken(token);
+    } catch (error) {
+      return NextResponse.json({ error: "Неверный токен" }, { status: 401 });
+    }
+
+    const { apartmentId, action, rejectionReason } = await request.json();
 
     if (!apartmentId || !action) {
       return NextResponse.json(
@@ -49,11 +75,25 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    let updateData: any = {};
+
+    if (action === "approve") {
+      updateData.status = "APPROVED";
+      updateData.isPublished = true;
+      updateData.publishedAt = new Date();
+    } else if (action === "reject") {
+      updateData.status = "REJECTED";
+      updateData.isPublished = false;
+      if (rejectionReason) {
+        updateData.rejectionReason = rejectionReason;
+      }
+    } else {
+      return NextResponse.json({ error: "Неверный action" }, { status: 400 });
+    }
+
     const apartment = await prisma.apartment.update({
       where: { id: apartmentId },
-      data: {
-        isPublished: action === "approve" ? true : false,
-      },
+      data: updateData,
       include: {
         host: {
           select: {

@@ -1,94 +1,11 @@
-привет! у меня есть проект для снятия жилья next.js windows shadcn.io используется для проекта также prizma 6, postgres 16.1 и так как я задеплоил его на vercel использую neon.tech для бд. 
-помоги разобраться с чатом хочу реализовать чат с арендатором и арентодателем как это сделать история функционал просмотр сообщение вся история сообщение как на авито при переходе на иконку чата и тд как это реализовать 
-задай вопросы для того чтобы точно сделать чат так как в прошлые разы было куча ошибок 
-chat chatid в апи роуте и тд саму иконку чата нужно добавить в app results page 
-также если человек не зашел в аккаунт и переходит в чат то должна срабатывать проверка и если он не зашел то его перекидывает в войти  
-
-
-также чу чуть про логику регистрации на сайте сама логика простая при регистрации на сайте 
-клиент вводит данные (фио номер почта роль кто он арендатор или арентодатель) и после этого нажимает на кнопку отправить код на почту ему приходит код он его вставляет и входит, 
-а вход работает проще просто логин и пароль если совпадает он заходит
-также уже реализована добавить жилье и просмотреть мое жилье а также реализован профиль
-вообщем в следующем своем сообщение я скину тебе файлы моего проекта а пока что вот структура 
-какие файлы тебе скинуть из этого?
-нужно поработать над добавлением жилья
-
-my-rental-app/
-├── app/
-│   ├── api/
-│   │   └── auth/
-│   │    |   ├── verify/
-│   │    |   │       └── route.ts
-│   │    |   ├── verify-code/
-│   │    |   │      └── route.ts
-│   │    |   ├── register/
-│   │    |   │      └── route.ts
-│   │    |   ├── login/
-│   |    ├── admin/
-│   │    |              └── apartments/route.ts
-│   |    ├── user/
-│   │    |              └── profile/route.ts
-|    |    └── send-email/
-|    |     |         └── route.ts
-|    |    └── upload/
-|    |              └── route.ts
-│   ├── apartment/
-│   │        └── [id]/page.tsx
-│   │            └── route.ts
-│   ├── booking/
-│   │       └── [id]/page.tsx      
-│   ├── moderate/
-│   │         └── page.tsx      
-│   ├── my-apartments/
-│   │         └── page.tsx    
-│   ├── results/
-│   │         └── page.tsx
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── modals/
-│   │      ├── LoginForm.tsx
-│   │      ├── RegisterModal.tsx
-│   │      ├── AddApartmentWizard.tsx
-│   ├── ui/
-│   │      ├── badge.tsx
-│   │      ├── card.tsx
-│   │      ├──  input.tsx
-│   │      └── label.tsx
-│   ├── ApartmentList.tsx
-│   ├── FilterModal.tsx
-│   ├── Header.tsx
-│   ├── MapComponent.tsx
-│   └── SmartSearch.tsx
-├── context/
-│   └── AuthContext.tsx
-├── lib/
-│   ├── prisma.ts
-│   ├── auth-utils.ts
-│   ├── filter-apartments.ts
-│   ├── scoring-algorithm.ts
-│   ├── search-utils.ts
-│   ├── utils.ts
-│   └── yandex-maps-loader.ts
-├── prisma/
-│   ├── schema.prisma
-├── public/ тут фотографии для карточек товаров
-│   ├── apartments
-│   └── icons
-├── types/
-│   ├── apartment.ts
-│   └── scoring.ts
-├── .env
-├── .gitignire
-├── components.json
-├── eslint.config.mjs
-├── .gitignore
-├── next-env.d.ts
-├── next.config.js
-├── next.config.ts
-├── package-lock.json
-├── package.json
-├── README.md
-├── postcss.config.js
-├── tailwind.config.js
-└── tsconfig.json
+гостиница вместо студии
+забыл пароль сделать 
+доабвить данные измененые в профиль
+избранные 
+календарь умный
+ползунок убрать время
+фильтр удобства гараж убрать банный чан
+умный поиск адреса 
+в добавить жилье тип жилья и под него параметры
+реализовать админ панель с добавлением жилья
+отзывы

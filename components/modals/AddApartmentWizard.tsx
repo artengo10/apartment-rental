@@ -275,8 +275,9 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess }: AddAp
             });
 
             const token = localStorage.getItem('auth_token');
-            
-            const response = await fetch('/apartment', { // Исправленный URL
+
+            // ИСПРАВЛЕННЫЙ URL - используем API route
+            const response = await fetch('/api/apartments', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

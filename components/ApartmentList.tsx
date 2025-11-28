@@ -1,10 +1,10 @@
-// components/ApartmentList.tsx - ИСПРАВЛЕННЫЙ С ОДИНАКОВЫМИ ФОТОГРАФИЯМИ
+// components/ApartmentList.tsx - ИСПРАВЛЕННЫЙ ДЛЯ РАБОТЫ С ЕДИНЫМ ИНТЕРФЕЙСОМ
 'use client';
-import { Apartment } from '@/types/apartment';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, MessageCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Image from 'next/image';
+import { Apartment } from '@/types/apartment'; // Импортируем единый интерфейс
 
 interface ApartmentListProps {
     apartments: Apartment[];
@@ -27,7 +27,8 @@ const generateSellerReviews = (apartmentId: number) => {
 };
 
 const getPlaceholderImage = (type: string) => {
-    switch (type) {
+    const typeLower = type.toLowerCase();
+    switch (typeLower) {
         case 'apartment':
             return '/placeholder-apartment.jpg';
         case 'house':
@@ -39,6 +40,21 @@ const getPlaceholderImage = (type: string) => {
     }
 };
 
+const getTypeDisplayName = (type: string) => {
+    const typeLower = type.toLowerCase();
+    switch (typeLower) {
+        case 'apartment':
+            return 'Квартира';
+        case 'house':
+            return 'Дом';
+        case 'studio':
+            return 'Студия';
+        default:
+            return type;
+    }
+};
+
+// Обновляем функцию для работы с единым интерфейсом Apartment
 const ApartmentList = ({
     apartments,
     selectedApartmentId,
@@ -71,6 +87,7 @@ const ApartmentList = ({
     const handleCall = useCallback((apartment: Apartment, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        // Используем заглушку для телефона, так как в интерфейсе нет host.phone
         alert(`Позвонить по номеру: +7 (999) 123-45-67\nКвартира: ${apartment.title}\nАдрес: ${apartment.address}`);
     }, []);
 
@@ -201,9 +218,11 @@ const ApartmentList = ({
                         const isSelected = selectedApartmentId === apartment.id;
                         const isHighlighted = highlightedApartmentId === apartment.id;
                         const sellerReviews = generateSellerReviews(apartment.id);
+                        // Используем photos вместо images
                         const mainPhoto = apartment.photos && apartment.photos.length > 0
                             ? apartment.photos[0]
                             : getPlaceholderImage(apartment.type);
+                        const displayType = getTypeDisplayName(apartment.type);
 
                         return (
                             <div
@@ -221,12 +240,10 @@ const ApartmentList = ({
                                 {/* ФОТОГРАФИЯ С ФИКСИРОВАННЫМ РАЗМЕРОМ */}
                                 <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
                                     {apartment.photos && apartment.photos.length > 0 ? (
-                                        <Image
+                                        <img
                                             src={mainPhoto}
                                             alt={apartment.title}
-                                            fill
-                                            className="object-cover hover:scale-105 transition-transform duration-300"
-                                            sizes="(max-width: 768px) 50vw, 33vw"
+                                            className="object-cover hover:scale-105 transition-transform duration-300 w-full h-full"
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
@@ -246,18 +263,9 @@ const ApartmentList = ({
                                             ${apartment.type === 'apartment' ? 'bg-blue-500' :
                                                 apartment.type === 'house' ? 'bg-green-500' : 'bg-purple-500'}
                                         `}>
-                                            {apartment.type === 'apartment' ? 'Квартира' :
-                                                apartment.type === 'house' ? 'Дом' : 'Студия'}
+                                            {displayType}
                                         </span>
                                     </div>
-
-                                    {(apartment as any).isPromoted && (
-                                        <div className="absolute top-2 right-2">
-                                            <span className="px-2 py-1 bg-yellow-500 text-white rounded-full text-xs font-bold">
-                                                ★ Топ
-                                            </span>
-                                        </div>
-                                    )}
 
                                     {isHighlighted && (
                                         <div className="absolute bottom-2 left-2">

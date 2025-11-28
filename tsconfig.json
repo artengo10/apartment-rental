@@ -35,7 +35,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "components/MapComponent.tsx"
-  ],
+, "lib/socket-server.js"  ],
   "exclude": [
     "node_modules"
   ]

@@ -2,40 +2,80 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { apartments, Apartment } from '@/types/apartment';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+
+// Интерфейс квартиры из API
+interface Apartment {
+    id: number;
+    lat: number;
+    lng: number;
+    title: string;
+    price: string;
+    address: string;
+    description: string;
+    type: "apartment" | "house" | "studio";
+    district: string;
+    rooms?: number;
+    area?: number;
+    floor?: number;
+    originalPrice?: string;
+    images: string[];
+    amenities?: string[];
+    hostName?: string;
+    hostRating?: number;
+    hostId: number;
+}
 
 export default function ApartmentDetail() {
     const params = useParams();
     const router = useRouter();
     const { user } = useAuth();
     const [apartment, setApartment] = useState<Apartment | null>(null);
-    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [currentImageIndex, setcurrentImageIndex] = useState(0);
     const [showChat, setShowChat] = useState(false);
     const [message, setMessage] = useState('');
     const [currentChatId, setCurrentChatId] = useState<number | null>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const apartmentId = parseInt(params.id as string);
-        const foundApartment = apartments.find(apt => apt.id === apartmentId);
-        setApartment(foundApartment || null);
+        const fetchApartment = async () => {
+            try {
+                const apartmentId = params.id;
+                const response = await fetch(`/api/apartments/${apartmentId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setApartment(data);
+                } else {
+                    setApartment(null);
+                }
+            } catch (error) {
+                console.error('Error fetching apartment:', error);
+                setApartment(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (params.id) {
+            fetchApartment();
+        }
     }, [params.id]);
 
-    const nextPhoto = () => {
-        if (apartment?.photos) {
-            setCurrentPhotoIndex((prev) =>
-                prev === apartment.photos!.length - 1 ? 0 : prev + 1
+    const nextImage = () => {
+        if (apartment?.images && apartment.images.length > 0) {
+            setcurrentImageIndex((prev) =>
+                prev === apartment.images!.length - 1 ? 0 : prev + 1
             );
         }
     };
 
-    const prevPhoto = () => {
-        if (apartment?.photos) {
-            setCurrentPhotoIndex((prev) =>
-                prev === 0 ? apartment.photos!.length - 1 : prev - 1
+    const prevImage = () => {
+        if (apartment?.images && apartment.images.length > 0) {
+            setcurrentImageIndex((prev) =>
+                prev === 0 ? apartment.images!.length - 1 : prev - 1
             );
         }
     };
@@ -78,8 +118,6 @@ export default function ApartmentDetail() {
                 return null;
             }
 
-            console.log('🔄 Creating chat for apartment:', apartment?.id);
-
             const response = await fetch('/api/chats', {
                 method: 'POST',
                 headers: {
@@ -88,23 +126,16 @@ export default function ApartmentDetail() {
                 },
                 body: JSON.stringify({
                     apartmentId: apartment?.id
-                    // Убрали hostId - теперь API сам его достает из базы
                 })
             });
 
-            console.log('📨 Chat creation response status:', response.status);
-
             if (response.ok) {
                 const chat = await response.json();
-                console.log('✅ Chat created:', chat);
                 setCurrentChatId(chat.id);
                 await loadChatHistory(chat.id);
                 return chat.id;
             } else {
                 const errorText = await response.text();
-                console.error('❌ Failed to create/get chat:', response.status, errorText);
-
-                // Показываем понятную ошибку пользователю
                 let errorMessage = 'Не удалось создать чат';
                 try {
                     const errorData = JSON.parse(errorText);
@@ -112,7 +143,6 @@ export default function ApartmentDetail() {
                 } catch (e) {
                     errorMessage = errorText || errorMessage;
                 }
-
                 alert(errorMessage);
                 return null;
             }
@@ -131,7 +161,6 @@ export default function ApartmentDetail() {
         }
 
         setShowChat(true);
-        // Даем время на отрисовку модального окна
         setTimeout(async () => {
             await getOrCreateChat();
         }, 100);
@@ -155,7 +184,6 @@ export default function ApartmentDetail() {
 
             if (response.ok) {
                 const newMessage = await response.json();
-                // Добавляем новое сообщение в состояние
                 setChatMessages(prev => [...prev, newMessage]);
                 setMessage('');
             } else {
@@ -174,6 +202,16 @@ export default function ApartmentDetail() {
             minute: '2-digit'
         });
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">Загрузка...</h2>
+                </div>
+            </div>
+        );
+    }
 
     if (!apartment) {
         return (
@@ -215,28 +253,29 @@ export default function ApartmentDetail() {
                     <div className="space-y-4">
                         {/* Основное фото */}
                         <div className="relative bg-white rounded-xl shadow-lg overflow-hidden">
-                            {apartment.photos && apartment.photos.length > 0 ? (
+                            {apartment.images && apartment.images.length > 0 ? (
                                 <>
                                     <div className="relative h-96 lg:h-[500px]">
                                         <Image
-                                            src={apartment.photos[currentPhotoIndex]}
+                                            src={apartment.images[currentImageIndex]}
                                             alt={apartment.title}
                                             fill
                                             className="object-cover"
+                                            priority
                                         />
                                     </div>
 
                                     {/* Навигация фото */}
-                                    {apartment.photos.length > 1 && (
+                                    {apartment.images.length > 1 && (
                                         <>
                                             <button
-                                                onClick={prevPhoto}
+                                                onClick={prevImage}
                                                 className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
                                             >
                                                 ←
                                             </button>
                                             <button
-                                                onClick={nextPhoto}
+                                                onClick={nextImage}
                                                 className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg transition-all"
                                             >
                                                 →
@@ -244,11 +283,11 @@ export default function ApartmentDetail() {
 
                                             {/* Индикаторы */}
                                             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                                                {apartment.photos.map((_, index) => (
+                                                {apartment.images.map((_, index) => (
                                                     <button
                                                         key={index}
-                                                        onClick={() => setCurrentPhotoIndex(index)}
-                                                        className={`w-3 h-3 rounded-full transition-all ${index === currentPhotoIndex
+                                                        onClick={() => setcurrentImageIndex(index)}
+                                                        className={`w-3 h-3 rounded-full transition-all ${index === currentImageIndex
                                                             ? 'bg-white'
                                                             : 'bg-white/50'
                                                             }`}
@@ -266,13 +305,13 @@ export default function ApartmentDetail() {
                         </div>
 
                         {/* Миниатюры */}
-                        {apartment.photos && apartment.photos.length > 1 && (
+                        {apartment.images && apartment.images.length > 1 && (
                             <div className="grid grid-cols-4 gap-2">
-                                {apartment.photos.map((photo, index) => (
+                                {apartment.images.map((photo, index) => (
                                     <button
                                         key={index}
-                                        onClick={() => setCurrentPhotoIndex(index)}
-                                        className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${index === currentPhotoIndex
+                                        onClick={() => setcurrentImageIndex(index)}
+                                        className={`relative h-20 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
                                             ? 'border-green-500'
                                             : 'border-transparent'
                                             }`}
@@ -355,9 +394,7 @@ export default function ApartmentDetail() {
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-xl font-bold mb-4">Описание</h2>
                             <p className="text-gray-700 leading-relaxed">
-                                {apartment.description} Уютное и комфортабельное жилье со всеми удобствами.
-                                Идеально подходит для краткосрочного проживания. Рядом есть магазины,
-                                кафе и общественный транспорт.
+                                {apartment.description}
                             </p>
                         </div>
 
@@ -398,7 +435,7 @@ export default function ApartmentDetail() {
                         </div>
 
                         {/* Удобства */}
-                        {apartment.amenities && (
+                        {apartment.amenities && apartment.amenities.length > 0 && (
                             <div className="bg-white rounded-xl shadow-lg p-6">
                                 <h2 className="text-xl font-bold mb-4">Удобства</h2>
                                 <div className="grid grid-cols-2 gap-2">
@@ -421,7 +458,7 @@ export default function ApartmentDetail() {
                                 </div>
                                 <div>
                                     <div className="font-semibold">
-                                        {apartment.hostName || 'Анна'}
+                                        {apartment.hostName || 'Неизвестно'}
                                     </div>
                                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                                         <span>⭐ {apartment.hostRating || '4.8'}</span>
@@ -476,8 +513,8 @@ export default function ApartmentDetail() {
                                     >
                                         <div
                                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${msg.senderId === user?.id
-                                                    ? 'bg-blue-500 text-white rounded-br-none'
-                                                    : 'bg-gray-200 text-gray-900 rounded-bl-none'
+                                                ? 'bg-blue-500 text-white rounded-br-none'
+                                                : 'bg-gray-200 text-gray-900 rounded-bl-none'
                                                 }`}
                                         >
                                             <p className="text-sm">{msg.content}</p>
