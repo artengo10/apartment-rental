@@ -21,8 +21,16 @@ export default function Header() {
         localStorage.removeItem('favorite_ids');
     };
 
-    const getFirstName = (fullName: string) => {
-        return fullName.split(' ')[0];
+    const getDisplayName = (fullName: string): string => {
+        const nameParts = fullName.trim().split(/\s+/).filter(part => part.length > 0);
+
+        // Русские имена обычно: Фамилия Имя Отчество
+        if (nameParts.length >= 2) {
+            // Пропускаем первый элемент (фамилию), берем остальные
+            return nameParts.slice(1).join(' ');
+        }
+
+        return nameParts[0] || 'Пользователь';
     };
 
     return (
@@ -76,7 +84,7 @@ export default function Header() {
 
                                 <div className="text-right hidden sm:block">
                                     <p className="text-sm font-medium">
-                                        Привет, {getFirstName(user.name)}!
+                                        Привет, {getDisplayName(user.name)}!
                                     </p>
                                 </div>
 

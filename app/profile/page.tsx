@@ -58,46 +58,198 @@ export default function ProfilePage() {
         }, 100);
     };
 
-    const ProfileInfo = () => (
-        <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-xl font-semibold mb-4">Личная информация</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-sm text-gray-500">Имя</label>
-                        <p className="font-medium">{user.name}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-500">Email</label>
-                        <p className="font-medium">{user.email}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-500">Телефон</label>
-                        <p className="font-medium">{user.phone}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-500">Статус</label>
-                        <p className="font-medium">
-                            <span className={`px-2 py-1 rounded-full text-xs ${user.isVerified
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                {user.isVerified ? 'Подтвержден' : 'Не подтвержден'}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-xl font-semibold mb-4">Безопасность</h3>
-                <div className="text-gray-600 text-sm">
-                    <p>Ваша сессия сохраняется между перезагрузками страницы</p>
-                    <p className="mt-2 text-green-600">✓ Авторизация активна</p>
+    // Добавьте этот компонент в app/profile/page.tsx перед существующим кодом
+    const EditProfileForm = ({ user, onSave, onCancel }: {
+        user: any;
+        onSave: (data: any) => void;
+        onCancel: () => void
+    }) => {
+        const [formData, setFormData] = useState({
+            name: user?.name || '',
+            email: user?.email || '',
+            phone: user?.phone || '',
+        });
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState('');
+
+        const handleSubmit = async (e: React.FormEvent) => {
+            e.preventDefault();
+            setLoading(true);
+            setError('');
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('/api/user-profile', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const updatedUser = await response.json();
+                    onSave(updatedUser);
+                } else {
+                    const errorData = await response.json();
+                    setError(errorData.error || 'Ошибка при обновлении профиля');
+                }
+            } catch (error) {
+                setError('Ошибка сети');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-xl font-semibold mb-4">Редактировать профиль</h3>
+
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Имя и фамилия
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Телефон
+                            </label>
+                            <input
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                {loading ? 'Сохранение...' : 'Сохранить'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onCancel}
+                                className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                            >
+                                Отмена
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
+
+
+    const ProfileInfo = () => {
+        const { user } = useAuth();
+        const [isEditing, setIsEditing] = useState(false);
+        const [currentUser, setCurrentUser] = useState(user);
+
+        useEffect(() => {
+            setCurrentUser(user);
+        }, [user]);
+
+        const handleSave = (updatedUser: any) => {
+            setCurrentUser(updatedUser);
+            setIsEditing(false);
+            // Можно добавить обновление контекста здесь
+            window.location.reload(); // Или обновить страницу для применения изменений
+        };
+
+        if (isEditing) {
+            return <EditProfileForm
+                user={currentUser}
+                onSave={handleSave}
+                onCancel={() => setIsEditing(false)}
+            />;
+        }
+
+        return (
+            <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xl font-semibold">Личная информация</h3>
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                            ✏️ Редактировать
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-sm text-gray-500">Имя и фамилия</label>
+                            <p className="font-medium">{currentUser?.name}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm text-gray-500">Email</label>
+                            <p className="font-medium">{currentUser?.email}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm text-gray-500">Телефон</label>
+                            <p className="font-medium">{currentUser?.phone}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm text-gray-500">Статус</label>
+                            <p className="font-medium">
+                                <span className={`px-2 py-1 rounded-full text-xs ${currentUser?.isVerified
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                    {currentUser?.isVerified ? 'Подтвержден' : 'Не подтвержден'}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-xl font-semibold mb-4">Безопасность</h3>
+                    <div className="text-gray-600 text-sm">
+                        <p>Ваша сессия сохраняется между перезагрузками страницы</p>
+                        <p className="mt-2 text-green-600">✓ Авторизация активна</p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const MyApartments = () => (
         <div className="bg-white rounded-lg shadow-sm p-6">

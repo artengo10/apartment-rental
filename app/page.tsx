@@ -19,7 +19,7 @@ export default function Home() {
         <div className="container mx-auto px-2 sm:px-6 py-4 sm:py-12">
           <div className="text-center mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
-              Найдем идеальное жилье для вас
+              Что вы ищете?
             </h2>
           </div>
           <div className="px-1 sm:px-0">
@@ -38,7 +38,7 @@ export default function Home() {
       <main className="flex-1 container mx-auto px-2 sm:px-6 py-4 sm:py-12">
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
-            Найдем идеальное жилье для вас
+            Что вы ищете?
           </h2>
         </div>
 

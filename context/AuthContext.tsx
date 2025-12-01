@@ -1,3 +1,4 @@
+// context/AuthContext.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -17,6 +18,7 @@ interface AuthContextType {
     verifyCode: (email: string, code: string) => Promise<boolean>;
     logout: () => void;
     isLoading: boolean;
+    updateUser: (userData: User) => void; // НОВАЯ ФУНКЦИЯ
 }
 
 interface RegisterData {
@@ -61,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // НОВАЯ ФУНКЦИЯ: Обновление данных пользователя
+    const updateUser = (userData: User) => {
+        setUser(userData);
+        saveUserToStorage(userData);
+    };
+
     useEffect(() => {
         setIsClient(true);
 
@@ -97,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
-                saveUserToStorage(userData); // Обновляем данные в localStorage
+                saveUserToStorage(userData);
             } else {
                 console.log('❌ Token invalid, removing from storage');
                 removeUserFromStorage();
@@ -122,10 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 const { token, user: userData } = await response.json();
+
+                // ВАЖНО: Сохраняем токен в localStorage
                 localStorage.setItem(AUTH_TOKEN_KEY, token);
                 setUser(userData);
-                saveUserToStorage(userData); // Сохраняем пользователя в localStorage
-                setIsLoading(false);
+                saveUserToStorage(userData);
                 return true;
             } else {
                 const errorData = await response.json();
@@ -148,7 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify(userData),
             });
 
-            return response.ok;
+            if (response.ok) {
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.error('Registration failed:', errorData.error);
+                return false;
+            }
         } catch (error) {
             console.error('Registration error:', error);
             return false;
@@ -167,10 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 const { token, user: userData } = await response.json();
+
+                // ВАЖНО: Сохраняем токен в localStorage
                 localStorage.setItem(AUTH_TOKEN_KEY, token);
                 setUser(userData);
-                saveUserToStorage(userData); // Сохраняем пользователя в localStorage
-                setIsLoading(false);
+                saveUserToStorage(userData);
                 return true;
             } else {
                 const errorData = await response.json();
@@ -195,7 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             register,
             verifyCode,
             logout,
-            isLoading
+            isLoading,
+            updateUser
         }}>
             {children}
         </AuthContext.Provider>

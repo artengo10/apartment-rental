@@ -39,7 +39,7 @@ const SmartSearch = () => {
 
             {/* Шаг 1: Выбор типа жилья */}
             <div className="text-center">
-                <h3 className="text-xl font-bold mb-6">Что вы ищете?</h3>
+                <h3 className="text-xl font-bold mb-6">Найдем лучшее жилье для вас!</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={() => handlePropertyTypeSelect('apartment')}

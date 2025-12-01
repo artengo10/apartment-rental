@@ -452,21 +452,23 @@ export default function ApartmentDetail() {
                         {/* Хозяин */}
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-xl font-bold mb-4">Хозяин</h2>
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                                    <span className="text-lg">👤</span>
-                                </div>
-                                <div>
-                                    <div className="font-semibold">
-                                        {apartment.hostName || 'Неизвестно'}
+                            <Link href={`/profile/${apartment.hostId}`}>
+                                <div className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                                        <span className="text-lg">👤</span>
                                     </div>
-                                    <div className="flex items-center space-x-1 text-sm text-gray-600">
-                                        <span>⭐ {apartment.hostRating || '4.8'}</span>
-                                        <span>•</span>
-                                        <span>В сети 2 часа назад</span>
+                                    <div>
+                                        <div className="font-semibold text-blue-600 hover:text-blue-800">
+                                            {apartment.hostName || 'Неизвестно'}
+                                        </div>
+                                        <div className="flex items-center space-x-1 text-sm text-gray-600">
+                                            <span>⭐ {apartment.hostRating || '4.8'}</span>
+                                            <span>•</span>
+                                            <span>В сети 2 часа назад</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </div>

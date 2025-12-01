@@ -60,12 +60,14 @@ model Apartment {
   images      String[]
   isPublished Boolean  @default(false)
   status      String   @default("PENDING")
+  isEdited    Boolean  @default(false)
   rejectionReason String?
   hostId      Int
   host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   publishedAt DateTime?
+  
 
   favorites   Favorite[]
   reviews     Review[]

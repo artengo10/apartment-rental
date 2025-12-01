@@ -82,6 +82,12 @@ export async function POST(request: NextRequest) {
     const type = formData.get("type") as "APARTMENT" | "HOUSE" | "STUDIO";
     const district = formData.get("district") as string;
     const address = formData.get("address") as string;
+    const lat = formData.get("lat")
+      ? parseFloat(formData.get("lat") as string)
+      : null;
+    const lng = formData.get("lng")
+      ? parseFloat(formData.get("lng") as string)
+      : null;
     const rooms = formData.get("rooms")
       ? parseInt(formData.get("rooms") as string)
       : null;
@@ -92,10 +98,22 @@ export async function POST(request: NextRequest) {
       ? parseInt(formData.get("floor") as string)
       : null;
 
-    // Валидация обязательных полей
-    if (!title || !description || !price || !type || !district || !address) {
+    // Валидация (ОБНОВЛЕНО - проверяем координаты)
+    if (
+      !title ||
+      !description ||
+      !price ||
+      !type ||
+      !district ||
+      !address ||
+      !lat ||
+      !lng
+    ) {
       return NextResponse.json(
-        { error: "Все обязательные поля должны быть заполнены" },
+        {
+          error:
+            "Все обязательные поля должны быть заполнены, включая корректный адрес с координатами",
+        },
         { status: 400 }
       );
     }
@@ -150,14 +168,17 @@ export async function POST(request: NextRequest) {
         type,
         district,
         address,
+        lat, // ДОБАВЛЕНО
+        lng, // ДОБАВЛЕНО
         rooms,
         area,
         floor,
         amenities,
         images,
         hostId: userId,
-        status: "PENDING", // Важно: статус модерации
-        isPublished: false, // Не публикуем до модерации
+        status: "PENDING",
+        isPublished: false,
+        isEdited: false,
       },
     });
 

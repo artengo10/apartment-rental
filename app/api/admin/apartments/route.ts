@@ -4,6 +4,7 @@ import { verifyAdminToken } from "@/lib/admin-auth-utils";
 
 export const dynamic = "force-dynamic";
 
+
 // GET - получить объявления на модерации
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     // Получаем квартиры с указанным статусом
     const apartments = await prisma.apartment.findMany({
       where: {
-        status: status, // используем поле status
+        status: status,
       },
       include: {
         host: {
