@@ -22,27 +22,6 @@ interface ImageItem {
     originalUrl?: string;
 }
 
-// Локальная база адресов Нижегородской области
-const LOCAL_ADDRESSES = [
-    { value: "ул. Ногина, 22, Нижний Новгород, Нижегородская область", lat: 56.2965, lng: 43.9361 },
-    { value: "ул. Ногина, 24, Нижний Новгород, Нижегородская область", lat: 56.2967, lng: 43.9363 },
-    { value: "ул. Ногина, 20, Нижний Новгород, Нижегородская область", lat: 56.2963, lng: 43.9359 },
-    { value: "ул. Ногина, 18, Нижний Новгород, Нижегородская область", lat: 56.2961, lng: 43.9357 },
-    { value: "ул. Ногина, 16, Нижний Новгород, Нижегородская область", lat: 56.2959, lng: 43.9355 },
-    { value: "ул. Большая Покровская, 1, Нижний Новгород", lat: 56.3175, lng: 43.9975 },
-    { value: "ул. Большая Покровская, 2, Нижний Новгород", lat: 56.3177, lng: 43.9977 },
-    { value: "ул. Рождественская, 1, Нижний Новгород", lat: 56.3279, lng: 43.9856 },
-    { value: "пр. Ленина, 1, Нижний Новгород", lat: 56.2928, lng: 43.9386 },
-    { value: "ул. Минина, 1, Нижний Новгород", lat: 56.3269, lng: 44.0006 },
-    { value: "ул. Гастелло, 1, Дзержинск, Нижегородская область", lat: 56.2389, lng: 43.4631 },
-    { value: "ул. Гастелло, 2, Дзержинск, Нижегородская область", lat: 56.2391, lng: 43.4633 },
-    { value: "ул. Карла Маркса, 1, Арзамас, Нижегородская область", lat: 55.3948, lng: 43.8399 },
-    { value: "ул. Карла Маркса, 2, Арзамас, Нижегородская область", lat: 55.3950, lng: 43.8401 },
-    { value: "ул. Ленина, 1, Бор, Нижегородская область", lat: 56.3581, lng: 44.0748 },
-    { value: "ул. Ленина, 2, Бор, Нижегородская область", lat: 56.3583, lng: 44.0750 },
-    { value: "ул. Магистральная, 1, Кстово, Нижегородская область", lat: 56.1473, lng: 44.1975 },
-    { value: "ул. Магистральная, 2, Кстово, Нижегородская область", lat: 56.1475, lng: 44.1977 }
-];
 
 const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -69,23 +48,30 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
         }
         setIsLoading(true);
         setRegionError(null);
-        await new Promise(resolve => setTimeout(resolve, 300));
+
         try {
-            const filtered = LOCAL_ADDRESSES.filter(item =>
-                item.value.toLowerCase().includes(query.toLowerCase())
-            ).slice(0, 5);
-            const suggestions = filtered.map(item => ({
-                value: item.value,
-                data: {
-                    geo_lat: item.lat.toString(),
-                    geo_lon: item.lng.toString()
+            const response = await fetch(`/api/geocode/suggest?query=${encodeURIComponent(query)}`);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Suggest API response:', data);
+
+                if (data.results && data.results.length > 0) {
+                    setSuggestions(data.results);
+                    setShowSuggestions(true);
+                } else {
+                    setSuggestions([]);
+                    setShowSuggestions(true);
                 }
-            }));
-            setSuggestions(suggestions);
-            setShowSuggestions(true);
+            } else {
+                const error = await response.json();
+                setRegionError(error.error || 'Ошибка при поиске адресов');
+                setSuggestions([]);
+            }
         } catch (error) {
             console.error('Error in address search:', error);
             setRegionError('Ошибка при поиске адресов');
+            setSuggestions([]);
         } finally {
             setIsLoading(false);
         }
@@ -107,17 +93,38 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
         setShowSuggestions(false);
         setSuggestions([]);
         setRegionError(null);
+
         try {
-            const addressData = LOCAL_ADDRESSES.find(item => item.value === address);
-            if (addressData) {
-                onAddressSelect(address, addressData.lat, addressData.lng);
+            // Получаем координаты для выбранного адреса
+            const lat = parseFloat(suggestion.data.geo_lat);
+            const lng = parseFloat(suggestion.data.geo_lon);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                throw new Error('Неверные координаты');
+            }
+
+            // Проверяем, что адрес в Нижегородской области
+            const isInRegion = checkNizhnyNovgorodRegion(lat, lng);
+
+            if (isInRegion) {
+                onAddressSelect(address, lat, lng);
+                console.log('Адрес подтвержден:', address, lat, lng);
             } else {
-                setRegionError('Адрес не найден в базе');
+                setRegionError('Адрес должен находиться в Нижегородской области');
             }
         } catch (error) {
             console.error('Error selecting address:', error);
-            setRegionError('Ошибка выбора адреса');
+            setRegionError('Ошибка выбора адреса. Проверьте адрес.');
         }
+    };
+
+    // Функция проверки, что координаты в Нижегородской области
+    const checkNizhnyNovgorodRegion = (lat: number, lng: number): boolean => {
+        // Приблизительные границы Нижегородской области
+        return (
+            lat >= 54.0 && lat <= 58.0 &&
+            lng >= 42.0 && lng <= 48.0
+        );
     };
 
     useEffect(() => {
@@ -129,51 +136,76 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
     return (
         <div className="relative" ref={inputRef}>
             <div className="relative">
-                <input type="text" value={value} onChange={handleInputChange}
+                <input
+                    type="text"
+                    value={value}
+                    onChange={handleInputChange}
                     className={`w-full p-2 border rounded pl-10 ${regionError ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="Введите адрес в Нижегородской области (например: ногина 22)..." />
+                    placeholder="Введите адрес в Нижегородской области (например: Ногина 22)..."
+                />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             </div>
+
             {isLoading && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                 </div>
             )}
+
             {regionError && (
                 <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
                     <AlertCircle className="w-4 h-4" /> {regionError}
                 </div>
             )}
+
             {showSuggestions && suggestions.length > 0 && (
                 <ul className="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-auto shadow-lg">
                     <li className="p-2 bg-blue-50 text-blue-700 text-sm font-medium border-b">
-                        📍 Адреса в Нижегородской области
+                        📍 Реальные адреса в Нижегородской области
                     </li>
                     {suggestions.map((suggestion, index) => (
-                        <li key={index} onClick={() => handleSuggestionClick(suggestion)}
-                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors">
+                        <li
+                            key={index}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                        >
                             <div className="flex items-start space-x-2">
-                                <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <div className="font-medium text-gray-900">{suggestion.value}</div>
-                                    <div className="text-xs text-green-600 mt-1">✅ В Нижегородской области</div>
+                                <MapPin className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                        {suggestion.value}
+                                    </div>
+                                    <div className="text-xs text-green-600 mt-1">
+                                        ✅ Реальный адрес с карты
+                                    </div>
                                 </div>
                             </div>
                         </li>
                     ))}
                 </ul>
             )}
+
             {showSuggestions && suggestions.length === 0 && !isLoading && value.length >= 3 && (
                 <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 p-4 text-center text-gray-500">
                     Адреса в Нижегородской области не найдены
                 </div>
             )}
+
             {value && value.length < 3 && (
-                <div className="text-sm text-gray-500 mt-1">Введите минимум 3 символа для поиска</div>
+                <div className="text-sm text-gray-500 mt-1">
+                    Введите минимум 3 символа для поиска
+                </div>
             )}
+
             <div className="text-xs text-gray-500 mt-2">
-                Доступны: Нижний Новгород, Дзержинск, Арзамас, Бор, Кстово и другие города области
+                🔍 Поиск реальных адресов: Нижний Новгород, Дзержинск, Арзамас, Бор, Кстово и другие города области
             </div>
+
+            {value && value.length >= 3 && !isLoading && (
+                <div className="text-xs text-blue-600 mt-1">
+                    📍 Выберите адрес из списка для автоматического определения координат на карте
+                </div>
+            )}
         </div>
     );
 });

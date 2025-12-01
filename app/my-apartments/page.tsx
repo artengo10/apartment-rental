@@ -184,7 +184,7 @@ export default function MyApartmentsPage() {
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            <div className="pt-16">
+            <div className="pt-2">
                 <div className="container mx-auto px-4 py-8">
                     {/* Заголовок и статистика */}
                     <div className="mb-8">
