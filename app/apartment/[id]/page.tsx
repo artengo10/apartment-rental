@@ -5,6 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import dynamic from 'next/dynamic';
+
+// Динамически импортируем модальное окно бронирования
+const BookingModal = dynamic(
+    () => import('@/components/modals/BookingModal'),
+    { ssr: false }
+);
 
 // Интерфейс квартиры из API
 interface Apartment {
@@ -35,6 +42,7 @@ export default function ApartmentDetail() {
     const [apartment, setApartment] = useState<Apartment | null>(null);
     const [currentImageIndex, setcurrentImageIndex] = useState(0);
     const [showChat, setShowChat] = useState(false);
+    const [showBookingModal, setShowBookingModal] = useState(false);
     const [message, setMessage] = useState('');
     const [currentChatId, setCurrentChatId] = useState<number | null>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -364,13 +372,13 @@ export default function ApartmentDetail() {
                                     <span>Позвонить</span>
                                 </button>
 
-                                <Link
-                                    href={`/booking/${apartment.id}`}
+                                <button
+                                    onClick={() => setShowBookingModal(true)}
                                     className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
                                 >
                                     <span>🏨</span>
                                     <span>Забронировать</span>
-                                </Link>
+                                </button>
 
                                 <button
                                     onClick={handleOpenChat}
@@ -553,6 +561,17 @@ export default function ApartmentDetail() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Модальное окно бронирования */}
+            {showBookingModal && apartment && (
+                <BookingModal
+                    apartmentId={apartment.id}
+                    apartmentTitle={apartment.title}
+                    hostId={apartment.hostId}
+                    isOpen={showBookingModal}
+                    onClose={() => setShowBookingModal(false)}
+                />
             )}
         </div>
     );

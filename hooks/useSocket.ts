@@ -1,52 +1,84 @@
-"use client";
+import { useState, useEffect, useCallback } from "react";
+import io from "socket.io-client";
 
-import { useEffect, useState } from "react";
+// Используем any для простоты, или установите @types/socket.io-client
+interface UseSocketReturn {
+  socket: any;
+  isConnected: boolean;
+  sendMessage: (message: any) => void;
+  sendTyping: (isTyping: boolean) => void;
+  typingUsers: string[];
+}
 
-export const useSocket = () => {
+export const useSocket = (): UseSocketReturn => {
   const [socket, setSocket] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   useEffect(() => {
-    const socketUrl =
-      process.env.NODE_ENV === "production"
-        ? "https://your-domain.com"
-        : "http://localhost:3001";
-
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-
-    if (!token) return;
-
-    console.log("🔌 Connecting to socket...", socketUrl);
-
-    import("socket.io-client").then((module) => {
-      const socketInstance = module.default(socketUrl, {
-        auth: { token },
-        transports: ["websocket", "polling"],
-      });
-
-      socketInstance.on("connect", () => {
-        console.log("✅ Socket connected");
-        setIsConnected(true);
-        setSocket(socketInstance);
-      });
-
-      socketInstance.on("disconnect", () => {
-        console.log("❌ Socket disconnected");
-        setIsConnected(false);
-      });
-
-      socketInstance.on("connect_error", (error: Error) => {
-        console.error("❌ Socket connection error:", error);
-      });
+    // Создаем соединение
+    const socketInstance = io("http://localhost:3001", {
+      transports: ["websocket", "polling"],
     });
 
-    return () => {
-      if (socket) {
-        socket.disconnect();
+    socketInstance.on("connect", () => {
+      console.log("Socket connected");
+      setIsConnected(true);
+    });
+
+    socketInstance.on("disconnect", () => {
+      console.log("Socket disconnected");
+      setIsConnected(false);
+    });
+
+    // Слушаем события печатания
+    socketInstance.on(
+      "user_typing",
+      (data: { userId: string; isTyping: boolean }) => {
+        setTypingUsers((prev) => {
+          if (data.isTyping && !prev.includes(data.userId)) {
+            return [...prev, data.userId];
+          } else if (!data.isTyping) {
+            return prev.filter((id) => id !== data.userId);
+          }
+          return prev;
+        });
       }
+    );
+
+    setSocket(socketInstance);
+
+    // Очистка при размонтировании
+    return () => {
+      socketInstance.disconnect();
     };
   }, []);
 
-  return { socket, isConnected };
+  // Отправка сообщения
+  const sendMessage = useCallback(
+    (message: any) => {
+      if (socket && isConnected) {
+        socket.emit("send_message", message);
+      }
+    },
+    [socket, isConnected]
+  );
+
+  // Отправка статуса печатания
+  const sendTyping = useCallback(
+    (isTyping: boolean) => {
+      if (socket && isConnected) {
+        socket.emit("typing", { isTyping });
+      }
+    },
+    [socket, isConnected]
+  );
+
+  return {
+    socket,
+    isConnected,
+    sendMessage,
+    sendTyping,
+    typingUsers,
+  };
 };

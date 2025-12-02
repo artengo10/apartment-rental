@@ -420,18 +420,32 @@ export default function MyApartmentsPage() {
                                                 {/* Кнопки действий (только для десктопа) */}
                                                 <div className="hidden lg:flex flex-col gap-2 lg:w-48">
                                                     {apartment.status === 'APPROVED' && apartment.isPublished && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                setEditingApartment(apartment);
-                                                                setIsEditModalOpen(true);
-                                                            }}
-                                                            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-center text-sm font-medium flex items-center justify-center gap-2"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                            Редактировать
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setEditingApartment(apartment);
+                                                                    setIsEditModalOpen(true);
+                                                                }}
+                                                                className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-center text-sm font-medium flex items-center justify-center gap-2"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                                Редактировать
+                                                            </button>
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    window.location.href = `/my-apartments/price-calendar/${apartment.id}`;
+                                                                }}
+                                                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-center text-sm font-medium flex items-center justify-center gap-2"
+                                                            >
+                                                                <span>📅</span>
+                                                                Календарь цен
+                                                            </button>
+                                                        </>
                                                     )}
 
                                                     {apartment.status === 'PENDING' && (
@@ -448,6 +462,56 @@ export default function MyApartmentsPage() {
                                                                 alert('Причина отказа: Требуется больше фотографий');
                                                             }}
                                                             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-center text-sm font-medium"
+                                                        >
+                                                            ❌ Причина
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Мобильные кнопки действий */}
+                                                <div className="lg:hidden flex flex-wrap gap-2 mt-2 pt-3 border-t border-gray-200">
+                                                    {apartment.status === 'APPROVED' && apartment.isPublished && (
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setEditingApartment(apartment);
+                                                                    setIsEditModalOpen(true);
+                                                                }}
+                                                                className="flex-1 px-3 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                            >
+                                                                <Edit className="w-3 h-3" />
+                                                                Редакт.
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    window.location.href = `/my-apartments/price-calendar/${apartment.id}`;
+                                                                }}
+                                                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                            >
+                                                                <span>📅</span>
+                                                                Календарь
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {apartment.status === 'PENDING' && (
+                                                        <div className="flex-1 px-3 py-2 bg-gray-400 text-white rounded-md text-xs font-medium text-center">
+                                                            ⏳ Модерация
+                                                        </div>
+                                                    )}
+
+                                                    {apartment.status === 'REJECTED' && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                alert('Причина отказа: Требуется больше фотографий');
+                                                            }}
+                                                            className="flex-1 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-xs font-medium"
                                                         >
                                                             ❌ Причина
                                                         </button>

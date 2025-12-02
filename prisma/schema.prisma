@@ -19,6 +19,19 @@ enum PropertyType {
   STUDIO
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+  COMPLETED
+}
+
+enum PricingType {
+  BASE
+  SPECIAL
+}
+
 model User {
   id              Int       @id @default(autoincrement())
   email           String    @unique
@@ -32,48 +45,113 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  // Отношения
   apartments      Apartment[]
+  bookings        Booking[]
   favorites       Favorite[]
-  authoredReviews Review[]  @relation("ReviewAuthor")
-  hostedReviews   Review[]  @relation("ReviewHost")
-  tenantChats     Chat[]    @relation("TenantChats")
-  hostChats       Chat[]    @relation("HostChats")
+  authoredReviews Review[]      @relation("ReviewAuthor")
+  hostedReviews   Review[]      @relation("ReviewHost")
+  tenantChats     Chat[]        @relation("TenantChats")
+  hostChats       Chat[]        @relation("HostChats")
   messages        Message[]
+  pricingRules    PricingRule[]
 
   @@map("users")
 }
 
 model Apartment {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  price       Int
-  type        PropertyType
-  district    String
-  lat         Float?
-  lng         Float?
-  address     String
-  rooms       Int?
-  area        Int?
-  floor       Int?
-  amenities   String[]
-  images      String[]
-  isPublished Boolean  @default(false)
-  status      String   @default("PENDING")
-  isEdited    Boolean  @default(false)
+  id            Int       @id @default(autoincrement())
+  title         String
+  description   String
+  price         Int       // Базовая цена за ночь
+  type          PropertyType
+  district      String
+  lat           Float?
+  lng           Float?
+  address       String
+  rooms         Int?
+  area          Int?
+  floor         Int?
+  amenities     String[]
+  images        String[]
+  isPublished   Boolean   @default(false)
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  isEdited      Boolean   @default(false)
   rejectionReason String?
-  hostId      Int
-  host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  publishedAt DateTime?
-  
+  hostId        Int
+  host          User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  publishedAt   DateTime?
 
-  favorites   Favorite[]
-  reviews     Review[]
-  chats       Chat[]
+  // Отношения
+  bookings      Booking[]
+  pricingRules  PricingRule[]
+  favorites     Favorite[]
+  reviews       Review[]
+  chats         Chat[]
 
   @@map("apartments")
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  apartmentId   Int
+  apartment     Apartment     @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Даты бронирования
+  startDate     DateTime
+  endDate       DateTime
+  
+  // Статус и информация
+  status        BookingStatus @default(PENDING)
+  totalPrice    Int           // Итоговая стоимость брони
+  comment       String?
+  
+  // Системные поля
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Связь с чатом (если создавался чат при бронировании)
+  chatId        Int?
+  chat          Chat?         @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  
+  // Связь с сообщениями (для связи с Message.booking)
+  messages      Message[]
+  
+  @@index([apartmentId, startDate, endDate])
+  @@index([userId, status])
+  @@index([startDate])
+  @@map("bookings")
+}
+
+model PricingRule {
+  id            Int           @id @default(autoincrement())
+  apartmentId   Int
+  apartment     Apartment     @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  
+  // Дата, на которую установлена цена
+  date          DateTime
+  
+  // Цена на эту дату
+  price         Int
+  
+  // Тип цены (базовая/специальная)
+  type          PricingType   @default(SPECIAL)
+  
+  // Кто установил цену (владелец)
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Уникальный индекс: нельзя иметь две цены на одну дату для одной квартиры
+  @@unique([apartmentId, date])
+  @@index([date])
+  @@map("pricing_rules")
 }
 
 model Admin {
@@ -131,8 +209,10 @@ model Chat {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
+  // Отношения
   messages    Message[]
-  reviews     Review[]  // ДОБАВЛЕНО: обратное отношение для Review.chat
+  reviews     Review[]
+  bookings    Booking[]
   
   @@unique([apartmentId, tenantId])
   @@map("chats")
@@ -147,6 +227,10 @@ model Message {
   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  
+  // ДОБАВЛЕНО: связь с бронированием (если сообщение о брони)
+  bookingId Int?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   
   @@map("messages")
 }

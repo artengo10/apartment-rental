@@ -629,8 +629,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             setFormData({
                 title: editingApartment.title || '',
                 description: editingApartment.description || '',
-                price: editingApartment.price ? editingApartment.price.replace('₽', '') : '',
-                type: (editingApartment.type?.toUpperCase() || 'APARTMENT') as 'APARTMENT' | 'HOUSE' | 'STUDIO',
+                price: editingApartment.price ? String(editingApartment.price || '').replace('₽', '').trim() : '', type: (editingApartment.type?.toUpperCase() || 'APARTMENT') as 'APARTMENT' | 'HOUSE' | 'STUDIO',
                 district: editingApartment.district || '',
                 address: editingApartment.address || '',
                 lat: editingApartment.lat || null,
