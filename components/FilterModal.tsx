@@ -1,7 +1,9 @@
-// components/FilterModal.tsx - ОБНОВЛЕННЫЙ С ИЗМЕНЕННЫМИ УДОБСТВАМИ
+// components/FilterModal.tsx
 'use client';
+
 import { useState, useEffect } from 'react';
 import { SearchCriteria } from '@/types/scoring';
+import { getAmenitiesByType, type PropertyType } from '@/lib/amenities-config';
 
 interface FilterModalProps {
     searchCriteria: SearchCriteria | null;
@@ -17,13 +19,17 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
         district: 'all',
         amenities: [],
         duration: '1-3',
-        houseArea: '',
-        houseFloors: '1',
-        hasGarden: false,
-        hasGarage: false,
-        hasSauna: false,
-        parkingSpaces: '1',
     });
+
+    // Функция для преобразования типа из формата фильтра в формат конфигурации
+    const mapPropertyType = (type: string): PropertyType | null => {
+        switch (type) {
+            case 'apartment': return 'APARTMENT';
+            case 'house': return 'HOUSE';
+            case 'studio': return 'STUDIO';
+            default: return null;
+        }
+    };
 
     useEffect(() => {
         if (searchCriteria) {
@@ -47,6 +53,13 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
         }));
     };
 
+    // Очистка удобств при изменении типа жилья
+    useEffect(() => {
+        if (filters.propertyType !== 'all') {
+            setFilters(prev => ({ ...prev, amenities: [] }));
+        }
+    }, [filters.propertyType]);
+
     const handleApply = () => {
         onApply(filters);
     };
@@ -59,39 +72,20 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
             district: 'all',
             amenities: [],
             duration: '1-3',
-            houseArea: '',
-            houseFloors: '1',
-            hasGarden: false,
-            hasGarage: false,
-            hasSauna: false,
-            parkingSpaces: '1',
         });
     };
 
-    // Определяем удобства в зависимости от типа жилья
-    const getAmenitiesByType = () => {
-        switch (filters.propertyType) {
-            case 'apartment':
-                return [
-                    'Wi-Fi', 'Кондиционер', 'Стиральная машина',
-                    'Телевизор', 'Мебель', 'Холодильник'
-                ];
-            case 'house':
-                return [
-                    'Wi-Fi', 'Кондиционер', 'Баня/Сауна', 'Мангал/Гриль',
-                    'Спортплощадка', 'Гараж'
-                ];
-            case 'studio':
-                return [
-                    'Wi-Fi', 'Кухня', 'TV', 'Кондиционер',
-                    'Стиральная машина', 'Парковка', 'Лифт', 'Балкон'
-                ];
-            default:
-                return []; // Для "всех вариантов" - пустой массив
-        }
+    // Получаем удобства для выбранного типа жилья
+    const getCurrentAmenities = () => {
+        if (filters.propertyType === 'all') return [];
+
+        const propertyType = mapPropertyType(filters.propertyType);
+        if (!propertyType) return [];
+
+        return getAmenitiesByType(propertyType);
     };
 
-    const currentAmenities = getAmenitiesByType();
+    const currentAmenities = getCurrentAmenities();
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -123,8 +117,8 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
                                     key={type.value}
                                     onClick={() => setFilters(prev => ({ ...prev, propertyType: type.value as any }))}
                                     className={`p-3 border-2 rounded-lg text-left transition-all ${filters.propertyType === type.value
-                                            ? 'border-green-500 bg-green-50 text-green-700'
-                                            : 'border-gray-300 hover:border-green-500'
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : 'border-gray-300 hover:border-green-500'
                                         }`}
                                 >
                                     <div className="flex items-center gap-2">
@@ -136,8 +130,8 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
                         </div>
                     </div>
 
-                    {/* Количество комнат (только для квартир) */}
-                    {filters.propertyType === 'apartment' && (
+                    {/* Количество комнат (только для квартир и студий) */}
+                    {(filters.propertyType === 'apartment' || filters.propertyType === 'studio') && (
                         <div>
                             <h4 className="font-semibold mb-3">Количество комнат</h4>
                             <div className="grid grid-cols-3 gap-2">
@@ -146,8 +140,8 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
                                         key={count}
                                         onClick={() => setFilters(prev => ({ ...prev, roomCount: count as any }))}
                                         className={`p-3 border-2 rounded-lg transition-all ${filters.roomCount === count
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
                                         {count === 'any' ? 'Любое' : `${count} комн.`}
@@ -184,27 +178,33 @@ const FilterModal = ({ searchCriteria, onApply, onClose }: FilterModalProps) => 
                         </div>
                     </div>
 
-                    {/* Удобства (только если не выбран "Все варианты" и есть удобства для этого типа) */}
+                    {/* Удобства (только если выбран конкретный тип жилья) */}
                     {filters.propertyType !== 'all' && currentAmenities.length > 0 && (
                         <div>
-                            <h4 className="font-semibold mb-3">Удобства</h4>
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold">Удобства</h4>
+                                <span className="text-xs text-gray-500">
+                                    {filters.propertyType === 'apartment' && 'Для квартиры'}
+                                    {filters.propertyType === 'house' && 'Для дома'}
+                                    {filters.propertyType === 'studio' && 'Для студии'}
+                                </span>
+                            </div>
                             <div className="grid grid-cols-2 gap-2">
                                 {currentAmenities.map((amenity) => (
                                     <button
-                                        key={amenity}
-                                        onClick={() => handleAmenityToggle(amenity)}
-                                        className={`p-3 border-2 rounded-lg transition-all ${filters.amenities.includes(amenity)
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-300 hover:border-green-500'
+                                        key={amenity.id}
+                                        onClick={() => handleAmenityToggle(amenity.name)}
+                                        className={`p-3 border-2 rounded-lg transition-all text-left ${filters.amenities.includes(amenity.name)
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-300 hover:border-green-500'
                                             }`}
                                     >
-                                        {amenity}
+                                        {amenity.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     )}
-                    
                 </div>
 
                 <div className="p-6 border-t bg-gray-50 flex justify-between">

@@ -3,7 +3,8 @@
 
 import { useState, useCallback, memo, useRef, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Upload, X, Image as ImageIcon, Loader2, Search, MapPin, AlertCircle } from 'lucide-react';
+import { getAmenitiesByType, type Amenity, type PropertyType } from '@/lib/amenities-config';
+import { Upload, X, Loader2, Search, MapPin, AlertCircle } from 'lucide-react';
 
 interface AddApartmentWizardProps {
     isOpen: boolean;
@@ -14,7 +15,6 @@ interface AddApartmentWizardProps {
 
 type WizardStep = 1 | 2 | 3;
 
-// Тип для изображений
 interface ImageItem {
     file?: File;
     previewUrl: string;
@@ -22,6 +22,52 @@ interface ImageItem {
     originalUrl?: string;
 }
 
+interface FormData {
+    title: string;
+    description: string;
+    price: string;
+    type: PropertyType;
+    district: string;
+    address: string;
+    lat: number | null;
+    lng: number | null;
+    rooms: string;
+    area: string;
+    floor: string;
+    amenities: string[];
+}
+
+// Конфигурация полей для каждого типа жилья
+const getFieldsConfig = (type: PropertyType) => {
+    const config = {
+        showRooms: false,
+        showArea: false,
+        showFloor: false,
+        roomsLabel: 'Комнаты',
+        areaLabel: 'Площадь (м²)',
+        floorLabel: 'Этаж'
+    };
+
+    switch (type) {
+        case 'APARTMENT':
+            config.showRooms = true;
+            config.showFloor = true;
+            config.showArea = false;
+            break;
+        case 'HOUSE':
+            config.showRooms = true;
+            config.showArea = true;
+            config.showFloor = false;
+            break;
+        case 'STUDIO':
+            config.showRooms = true;
+            config.showFloor = true;
+            config.showArea = false;
+            break;
+    }
+
+    return config;
+};
 
 const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
     const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -51,11 +97,8 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
 
         try {
             const response = await fetch(`/api/geocode/suggest?query=${encodeURIComponent(query)}`);
-
             if (response.ok) {
                 const data = await response.json();
-                console.log('Suggest API response:', data);
-
                 if (data.results && data.results.length > 0) {
                     setSuggestions(data.results);
                     setShowSuggestions(true);
@@ -95,7 +138,6 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
         setRegionError(null);
 
         try {
-            // Получаем координаты для выбранного адреса
             const lat = parseFloat(suggestion.data.geo_lat);
             const lng = parseFloat(suggestion.data.geo_lon);
 
@@ -103,12 +145,9 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
                 throw new Error('Неверные координаты');
             }
 
-            // Проверяем, что адрес в Нижегородской области
             const isInRegion = checkNizhnyNovgorodRegion(lat, lng);
-
             if (isInRegion) {
                 onAddressSelect(address, lat, lng);
-                console.log('Адрес подтвержден:', address, lat, lng);
             } else {
                 setRegionError('Адрес должен находиться в Нижегородской области');
             }
@@ -118,13 +157,8 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
         }
     };
 
-    // Функция проверки, что координаты в Нижегородской области
     const checkNizhnyNovgorodRegion = (lat: number, lng: number): boolean => {
-        // Приблизительные границы Нижегородской области
-        return (
-            lat >= 54.0 && lat <= 58.0 &&
-            lng >= 42.0 && lng <= 48.0
-        );
+        return lat >= 54.0 && lat <= 58.0 && lng >= 42.0 && lng <= 48.0;
     };
 
     useEffect(() => {
@@ -191,88 +225,157 @@ const AddressSuggest = memo(({ onAddressSelect, value, onChange }: any) => {
                 </div>
             )}
 
-            {value && value.length < 3 && (
-                <div className="text-sm text-gray-500 mt-1">
-                    Введите минимум 3 символа для поиска
-                </div>
-            )}
-
             <div className="text-xs text-gray-500 mt-2">
                 🔍 Поиск реальных адресов: Нижний Новгород, Дзержинск, Арзамас, Бор, Кстово и другие города области
             </div>
-
-            {value && value.length >= 3 && !isLoading && (
-                <div className="text-xs text-blue-600 mt-1">
-                    📍 Выберите адрес из списка для автоматического определения координат на карте
-                </div>
-            )}
         </div>
     );
 });
 
-const Step1 = memo(({ formData, handleInputChange }: any) => (
-    <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Основная информация</h3>
-        <div>
-            <label className="block text-sm font-medium mb-1">Название объявления *</label>
-            <input type="text" required value={formData.title} onChange={handleInputChange('title')}
-                className="w-full p-2 border rounded" placeholder="Уютная квартира в центре города" />
-        </div>
-        <div>
-            <label className="block text-sm font-medium mb-1">Описание *</label>
-            <textarea required value={formData.description} onChange={handleInputChange('description')}
-                className="w-full p-2 border rounded h-24" placeholder="Опишите ваше жилье подробно..." />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+const Step1 = memo(({ formData, handleInputChange }: any) => {
+    const getAmenitiesHint = () => {
+        switch (formData.type) {
+            case 'APARTMENT':
+                return 'Для квартиры доступны: Wi-Fi, Кондиционер, Стиральная машина, Телевизор, Мебель, Холодильник';
+            case 'HOUSE':
+                return 'Для дома доступны: Wi-Fi, Кондиционер, Баня/Сауна, Мангал/Гриль, Спортплощадка, Банный чан';
+            case 'STUDIO':
+                return 'Для студии доступны: Wi-Fi, Кухня, TV, Кондиционер, Стиральная машина, Парковка, Лифт, Балкон';
+            default:
+                return '';
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Основная информация</h3>
             <div>
-                <label className="block text-sm font-medium mb-1">Тип жилья *</label>
-                <select value={formData.type} onChange={handleInputChange('type')} className="w-full p-2 border rounded">
-                    <option value="APARTMENT">Квартира</option>
-                    <option value="HOUSE">Дом</option>
-                    <option value="STUDIO">Студия</option>
-                </select>
+                <label className="block text-sm font-medium mb-1">Название объявления *</label>
+                <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={handleInputChange('title')}
+                    className="w-full p-2 border rounded"
+                    placeholder="Уютная квартира в центре города"
+                />
             </div>
             <div>
-                <label className="block text-sm font-medium mb-1">Район *</label>
-                <input type="text" required value={formData.district} onChange={handleInputChange('district')}
-                    className="w-full p-2 border rounded" placeholder="Нижегородский район" />
+                <label className="block text-sm font-medium mb-1">Описание *</label>
+                <textarea
+                    required
+                    value={formData.description}
+                    onChange={handleInputChange('description')}
+                    className="w-full p-2 border rounded h-24"
+                    placeholder="Опишите ваше жилье подробно..."
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium mb-1">Тип жилья *</label>
+                    <select
+                        value={formData.type}
+                        onChange={handleInputChange('type')}
+                        className="w-full p-2 border rounded"
+                    >
+                        <option value="APARTMENT">Квартира</option>
+                        <option value="HOUSE">Дом</option>
+                        <option value="STUDIO">Студия</option>
+                    </select>
+                    <div className="mt-2 text-xs text-gray-500">
+                        {getAmenitiesHint()}
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Район *</label>
+                    <input
+                        type="text"
+                        required
+                        value={formData.district}
+                        onChange={handleInputChange('district')}
+                        className="w-full p-2 border rounded"
+                        placeholder="Нижегородский район"
+                    />
+                </div>
             </div>
         </div>
-    </div>
-));
+    );
+});
 
 const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, handleCheckboxChange, handleAddressSelect }: any) => {
-    const amenitiesList = ['WiFi', 'TV', 'Kitchen', 'Air conditioning', 'Heating', 'Washing machine', 'Parking'];
+    const amenitiesList: Amenity[] = getAmenitiesByType(formData.type);
+    const fieldsConfig = getFieldsConfig(formData.type);
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Детали и цена</h3>
             <div>
                 <label className="block text-sm font-medium mb-1">Цена за сутки (₽) *</label>
-                <input type="number" required value={formData.price} onChange={handleNumberInputChange('price')}
-                    className="w-full p-2 border rounded" placeholder="2500" min="1" />
+                <input
+                    type="number"
+                    required
+                    value={formData.price}
+                    onChange={handleNumberInputChange('price')}
+                    className="w-full p-2 border rounded"
+                    placeholder="2500"
+                    min="1"
+                />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-                <div>
-                    <label className="block text-sm font-medium mb-1">Комнаты</label>
-                    <input type="number" value={formData.rooms || ''} onChange={handleNumberInputChange('rooms')}
-                        className="w-full p-2 border rounded" placeholder="2" min="0" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">Площадь (м²)</label>
-                    <input type="number" value={formData.area || ''} onChange={handleNumberInputChange('area')}
-                        className="w-full p-2 border rounded" placeholder="45" min="1" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">Этаж</label>
-                    <input type="number" value={formData.floor || ''} onChange={handleNumberInputChange('floor')}
-                        className="w-full p-2 border rounded" placeholder="3" min="0" />
-                </div>
+
+            {/* Динамические поля */}
+            <div className={`grid gap-4 ${(fieldsConfig.showRooms && fieldsConfig.showArea && fieldsConfig.showFloor) ? 'grid-cols-3' :
+                (fieldsConfig.showRooms && (fieldsConfig.showArea || fieldsConfig.showFloor)) ? 'grid-cols-2' :
+                    'grid-cols-1'}`}>
+                {fieldsConfig.showRooms && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Комнаты</label>
+                        <input
+                            type="number"
+                            value={formData.rooms || ''}
+                            onChange={handleNumberInputChange('rooms')}
+                            className="w-full p-2 border rounded"
+                            placeholder="2"
+                            min="0"
+                        />
+                    </div>
+                )}
+                {fieldsConfig.showArea && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Площадь (м²)</label>
+                        <input
+                            type="number"
+                            value={formData.area || ''}
+                            onChange={handleNumberInputChange('area')}
+                            className="w-full p-2 border rounded"
+                            placeholder="45"
+                            min="1"
+                        />
+                    </div>
+                )}
+                {fieldsConfig.showFloor && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Этаж</label>
+                        <input
+                            type="number"
+                            value={formData.floor || ''}
+                            onChange={handleNumberInputChange('floor')}
+                            className="w-full p-2 border rounded"
+                            placeholder="3"
+                            min="0"
+                        />
+                    </div>
+                )}
             </div>
+
             <div>
                 <label className="block text-sm font-medium mb-1">Адрес в Нижегородской области *</label>
-                <AddressSuggest value={formData.address} onChange={(value: string) => {
-                    handleInputChange('address')({ target: { value } } as any);
-                }} onAddressSelect={handleAddressSelect} />
+                <AddressSuggest
+                    value={formData.address}
+                    onChange={(value: string) => {
+                        handleInputChange('address')({ target: { value } } as any);
+                    }}
+                    onAddressSelect={handleAddressSelect}
+                />
                 {formData.lat && formData.lng && (
                     <div className="text-sm text-green-600 mt-1">
                         ✅ Адрес подтвержден: {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
@@ -285,16 +388,35 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
                 )}
             </div>
             <div>
-                <label className="block text-sm font-medium mb-2">Удобства</label>
-                <div className="grid grid-cols-2 gap-2">
-                    {amenitiesList.map(amenity => (
-                        <label key={amenity} className="flex items-center space-x-2">
-                            <input type="checkbox" checked={formData.amenities.includes(amenity)}
-                                onChange={handleCheckboxChange(amenity)} className="rounded" />
-                            <span className="text-sm">{amenity}</span>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium">Удобства</label>
+                    <span className="text-xs text-gray-500">
+                        {formData.type === 'APARTMENT' && 'Квартира'}
+                        {formData.type === 'HOUSE' && 'Дом'}
+                        {formData.type === 'STUDIO' && 'Студия'}
+                    </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    {amenitiesList.map((amenity: Amenity) => (
+                        <label
+                            key={amenity.id}
+                            className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                            <input
+                                type="checkbox"
+                                checked={formData.amenities.includes(amenity.name)}
+                                onChange={handleCheckboxChange(amenity.name)}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{amenity.label}</span>
                         </label>
                     ))}
                 </div>
+                {amenitiesList.length === 0 && (
+                    <div className="text-sm text-yellow-600 mt-2">
+                        Выберите тип жилья для отображения соответствующих удобств
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -305,40 +427,31 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
 
-    // Обработчик начала перетаскивания
     const handleDragStart = (index: number) => {
         setDraggedIndex(index);
     };
 
-    // Обработчик перетаскивания над элементом
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
     };
 
-    // Обработчик отпускания
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
         if (draggedIndex === null) return;
 
         const newImages = [...allImages];
         const draggedImage = newImages[draggedIndex];
-
-        // Удаляем из старой позиции
         newImages.splice(draggedIndex, 1);
-        // Вставляем в новую позицию
         newImages.splice(dropIndex, 0, draggedImage);
 
         setAllImages(newImages);
         setDraggedIndex(null);
     };
 
-    // Удаление одной фотографии
     const handleDeleteImage = (index: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Останавливаем всплытие, чтобы не открывался лайтбокс
-
+        e.stopPropagation();
         const newImages = [...allImages];
 
-        // Очищаем ObjectURL для новых изображений
         if (!newImages[index].isExisting && newImages[index].previewUrl) {
             URL.revokeObjectURL(newImages[index].previewUrl);
         }
@@ -347,38 +460,32 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
         setAllImages(newImages);
     };
 
-    // Открытие лайтбокса
     const openLightbox = (index: number) => {
         setLightboxIndex(index);
         setLightboxOpen(true);
     };
 
-    // Закрытие лайтбокса
     const closeLightbox = () => {
         setLightboxOpen(false);
     };
 
-    // Следующее фото в лайтбоксе
     const nextLightboxImage = () => {
         setLightboxIndex((prev) => (prev + 1) % allImages.length);
     };
 
-    // Предыдущее фото в лайтбоксе
     const prevLightboxImage = () => {
         setLightboxIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
     };
 
-    // Загрузка новых файлов
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-
         const newImageObjects = files.map((file: File) => ({
             file,
             previewUrl: URL.createObjectURL(file),
             isExisting: false,
         }));
 
-        setAllImages((prev: any[]) => [...prev, ...newImageObjects].slice(0, 10));
+        setAllImages((prev: ImageItem[]) => [...prev, ...newImageObjects].slice(0, 10));
     };
 
     return (
@@ -388,22 +495,19 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                 Первая фотография будет главной в объявлении. Перетаскивайте фото для изменения порядка.
             </p>
 
-            {/* Превью фотографий с возможностью перетаскивания */}
             {allImages.length > 0 && (
                 <div className="mb-4">
                     <div className="mb-2">
                         <p className="text-sm font-medium text-gray-700">
                             Фотографии: {allImages.length}/10
                             {allImages[0] && (
-                                <span className="text-green-600 ml-2">
-                                    📸 Первая фото — главная
-                                </span>
+                                <span className="text-green-600 ml-2">📸 Первая фото — главная</span>
                             )}
                         </p>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {allImages.map((image: any, index: number) => (
+                        {allImages.map((image: ImageItem, index: number) => (
                             <div
                                 key={index}
                                 draggable
@@ -411,21 +515,17 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                                 onDragOver={(e) => handleDragOver(e, index)}
                                 onDrop={(e) => handleDrop(e, index)}
                                 onClick={() => openLightbox(index)}
-                                className={`
-                                    relative group rounded-lg border-2 overflow-hidden
+                                className={`relative group rounded-lg border-2 overflow-hidden
                                     ${index === 0 ? 'ring-2 ring-green-500 border-green-500' : 'border-gray-200'}
                                     ${draggedIndex === index ? 'opacity-50' : ''}
-                                    transition-all duration-200 cursor-move hover:scale-[1.02] hover:shadow-lg
-                                `}
+                                    transition-all duration-200 cursor-move hover:scale-[1.02] hover:shadow-lg`}
                             >
-                                {/* Главная метка */}
                                 {index === 0 && (
                                     <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded z-10">
                                         Главная
                                     </div>
                                 )}
 
-                                {/* Иконка удаления (мусорка) */}
                                 <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         type="button"
@@ -437,19 +537,16 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                                     </button>
                                 </div>
 
-                                {/* Изображение */}
                                 <img
-                                    src={image.previewUrl || image}
+                                    src={image.previewUrl}
                                     alt={`Photo ${index + 1}`}
                                     className="w-full h-40 object-cover"
                                 />
 
-                                {/* Индикатор порядка (только при наведении) */}
                                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                                     #{index + 1}
                                 </div>
 
-                                {/* Подсказка при наведении */}
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
                                     <div className="text-white text-center text-sm">
                                         <div className="mb-1">🖱️ Клик для просмотра</div>
@@ -459,26 +556,9 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                             </div>
                         ))}
                     </div>
-
-                    {/* Инструкция */}
-                    <div className="mt-3 text-xs text-gray-500 flex flex-col gap-1">
-                        <div className="flex items-center gap-1">
-                            <span className="text-green-600">📸</span>
-                            Первая фотография — главная (отображается в карточке)
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <span className="text-gray-600">🗑️</span>
-                            Наведите на фото и нажмите иконку для удаления
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <span className="text-blue-600">👁️</span>
-                            Кликните на фото для просмотра в полном размере
-                        </div>
-                    </div>
                 </div>
             )}
 
-            {/* Загрузка новых фото */}
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <input
                     type="file"
@@ -491,11 +571,9 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                 />
                 <label
                     htmlFor="apartment-images"
-                    className={`
-                        cursor-pointer flex flex-col items-center 
+                    className={`cursor-pointer flex flex-col items-center 
                         ${isUploading || allImages.length >= 10 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'} 
-                        transition-colors p-4 rounded-lg
-                    `}
+                        transition-colors p-4 rounded-lg`}
                 >
                     {isUploading ? (
                         <>
@@ -523,7 +601,6 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                 </label>
             </div>
 
-            {/* Лайтбокс для просмотра фотографий */}
             {lightboxOpen && allImages.length > 0 && (
                 <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
                     <button
@@ -537,45 +614,37 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                         onClick={prevLightboxImage}
                         className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
                     >
-                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20">
-                            ←
-                        </div>
+                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20">←</div>
                     </button>
 
                     <button
                         onClick={nextLightboxImage}
                         className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
                     >
-                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20">
-                            →
-                        </div>
+                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20">→</div>
                     </button>
 
                     <div className="relative w-full max-w-4xl max-h-[80vh]">
                         <img
-                            src={allImages[lightboxIndex]?.previewUrl || allImages[lightboxIndex]}
+                            src={allImages[lightboxIndex]?.previewUrl}
                             alt={`Photo ${lightboxIndex + 1}`}
                             className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
                         />
-
                         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-2 rounded-lg text-sm">
                             Фото {lightboxIndex + 1} из {allImages.length}
-                            {lightboxIndex === 0 && (
-                                <span className="ml-2 text-green-400">★ Главное фото</span>
-                            )}
+                            {lightboxIndex === 0 && <span className="ml-2 text-green-400">★ Главное фото</span>}
                         </div>
                     </div>
 
-                    {/* Миниатюры внизу */}
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 overflow-x-auto max-w-full">
-                        {allImages.map((image: any, index: number) => (
+                        {allImages.map((image: ImageItem, index: number) => (
                             <button
                                 key={index}
                                 onClick={() => setLightboxIndex(index)}
                                 className={`shrink-0 w-16 h-16 rounded overflow-hidden border-2 ${index === lightboxIndex ? 'border-blue-500' : 'border-transparent'}`}
                             >
                                 <img
-                                    src={image.previewUrl || image}
+                                    src={image.previewUrl}
                                     alt={`Thumb ${index + 1}`}
                                     className="w-full h-full object-cover"
                                 />
@@ -588,33 +657,29 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
     );
 });
 
-
 export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editingApartment = null }: AddApartmentWizardProps) {
     const { user } = useAuth();
     const [currentStep, setCurrentStep] = useState<WizardStep>(1);
     const [loading, setLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         description: '',
         price: '',
-        type: 'APARTMENT' as 'APARTMENT' | 'HOUSE' | 'STUDIO',
+        type: 'APARTMENT',
         district: '',
         address: '',
-        lat: null as number | null,
-        lng: null as number | null,
+        lat: null,
+        lng: null,
         rooms: '',
         area: '',
         floor: '',
-        amenities: [] as string[],
-        // images: [] as File[], // Убрали из formData
+        amenities: [],
     });
 
-    // Новое состояние для всех изображений
     const [allImages, setAllImages] = useState<ImageItem[]>([]);
 
     useEffect(() => {
-        // Очищаем ObjectURL при размонтировании компонента
         return () => {
             allImages.forEach(img => {
                 if (!img.isExisting && img.previewUrl) {
@@ -629,7 +694,8 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             setFormData({
                 title: editingApartment.title || '',
                 description: editingApartment.description || '',
-                price: editingApartment.price ? String(editingApartment.price || '').replace('₽', '').trim() : '', type: (editingApartment.type?.toUpperCase() || 'APARTMENT') as 'APARTMENT' | 'HOUSE' | 'STUDIO',
+                price: editingApartment.price ? String(editingApartment.price || '').replace('₽', '').trim() : '',
+                type: (editingApartment.type?.toUpperCase() || 'APARTMENT') as PropertyType,
                 district: editingApartment.district || '',
                 address: editingApartment.address || '',
                 lat: editingApartment.lat || null,
@@ -640,7 +706,6 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 amenities: editingApartment.amenities || [],
             });
 
-            // Загружаем существующие изображения
             if (editingApartment.images && Array.isArray(editingApartment.images)) {
                 const existingImagesArray = editingApartment.images.map((url: string) => ({
                     previewUrl: url,
@@ -652,7 +717,6 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 setAllImages([]);
             }
         } else {
-            // Сброс при создании нового
             setFormData({
                 title: '', description: '', price: '', type: 'APARTMENT', district: '', address: '',
                 lat: null, lng: null, rooms: '', area: '', floor: '', amenities: [],
@@ -661,12 +725,38 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
         }
     }, [editingApartment]);
 
-    const handleInputChange = useCallback((field: string) =>
+    const handleInputChange = useCallback((field: keyof FormData) =>
         (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-            setFormData(prev => ({ ...prev, [field]: e.target.value }));
+            const value = e.target.value;
+
+            if (field === 'type') {
+                const newType = value as PropertyType;
+                const resetFields: Partial<FormData> = { amenities: [] };
+
+                // Сбрасываем поля, которые не используются для нового типа
+                switch (newType) {
+                    case 'APARTMENT':
+                        resetFields.area = ''; // Для квартиры сбрасываем площадь
+                        break;
+                    case 'HOUSE':
+                        resetFields.floor = ''; // Для дома сбрасываем этаж
+                        break;
+                    case 'STUDIO':
+                        resetFields.area = ''; // Для студии сбрасываем площадь
+                        break;
+                }
+
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: newType,
+                    ...resetFields
+                }));
+            } else {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            }
         }, []);
 
-    const handleNumberInputChange = useCallback((field: string) =>
+    const handleNumberInputChange = useCallback((field: keyof FormData) =>
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const value = e.target.value;
             setFormData(prev => ({ ...prev, [field]: value === '' ? '' : value }));
@@ -688,10 +778,14 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
 
     const validateStep = (step: WizardStep): boolean => {
         switch (step) {
-            case 1: return !!(formData.title && formData.description && formData.district);
-            case 2: return !!(formData.price && formData.address && formData.lat && formData.lng);
-            case 3: return allImages.length > 0; // Проверяем allImages вместо formData.images
-            default: return false;
+            case 1:
+                return !!(formData.title && formData.description && formData.district);
+            case 2:
+                return !!(formData.price && formData.address && formData.lat && formData.lng);
+            case 3:
+                return allImages.length > 0;
+            default:
+                return false;
         }
     };
 
@@ -699,6 +793,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
         if (!user) return;
         setLoading(true);
         setIsUploading(true);
+
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('title', formData.title);
@@ -709,32 +804,34 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             formDataToSend.append('address', formData.address);
             if (formData.lat) formDataToSend.append('lat', formData.lat.toString());
             if (formData.lng) formDataToSend.append('lng', formData.lng.toString());
-            if (formData.rooms) formDataToSend.append('rooms', formData.rooms);
-            if (formData.area) formDataToSend.append('area', formData.area);
-            if (formData.floor) formDataToSend.append('floor', formData.floor);
 
-            // Добавляем удобства
+            // Добавляем только те поля, которые актуальны для типа жилья
+            if (formData.rooms) formDataToSend.append('rooms', formData.rooms);
+            if (formData.area && (formData.type === 'HOUSE')) {
+                formDataToSend.append('area', formData.area);
+            }
+            if (formData.floor && (formData.type === 'APARTMENT' || formData.type === 'STUDIO')) {
+                formDataToSend.append('floor', formData.floor);
+            }
+
             formData.amenities.forEach(amenity => formDataToSend.append('amenities', amenity));
 
-            // Отправляем существующие изображения (сохраняем порядок!)
             const existingImagesUrls = allImages
-                .filter((img: ImageItem) => img.isExisting && img.originalUrl)
-                .map((img: ImageItem) => img.originalUrl!);
+                .filter(img => img.isExisting && img.originalUrl)
+                .map(img => img.originalUrl!);
 
             existingImagesUrls.forEach(url => {
                 formDataToSend.append('existingImages', url);
             });
 
-            // Отправляем новые изображения
             const newImageFiles = allImages
-                .filter((img: ImageItem) => !img.isExisting && img.file)
-                .map((img: ImageItem) => img.file!);
+                .filter(img => !img.isExisting && img.file)
+                .map(img => img.file!);
 
             newImageFiles.forEach(file => {
                 formDataToSend.append('images', file);
             });
 
-            // Проверяем, что есть хотя бы одно изображение
             if (existingImagesUrls.length === 0 && newImageFiles.length === 0) {
                 alert('❌ Добавьте хотя бы одно изображение');
                 setIsUploading(false);
@@ -746,19 +843,9 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             const url = editingApartment ? `/api/apartments/${editingApartment.id}` : '/api/apartments';
             const method = editingApartment ? 'PATCH' : 'POST';
 
-            console.log('Отправка объявления:', {
-                url, method,
-                editing: !!editingApartment,
-                existingImages: existingImagesUrls.length,
-                newImages: newImageFiles.length,
-                totalImages: allImages.length
-            });
-
             const response = await fetch(url, {
                 method,
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formDataToSend,
             });
 
@@ -766,8 +853,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 const result = await response.json();
                 console.log('Успешный ответ:', result);
 
-                // Очищаем ObjectURL для новых изображений
-                allImages.forEach((img: ImageItem) => {
+                allImages.forEach(img => {
                     if (!img.isExisting && img.previewUrl) {
                         URL.revokeObjectURL(img.previewUrl);
                     }
@@ -780,7 +866,6 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 onSuccess();
                 onClose();
 
-                // Сброс формы
                 setFormData({
                     title: '', description: '', price: '', type: 'APARTMENT', district: '', address: '',
                     lat: null, lng: null, rooms: '', area: '', floor: '', amenities: [],
@@ -788,14 +873,8 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 setAllImages([]);
                 setCurrentStep(1);
             } else {
-                try {
-                    const errorData = await response.json();
-                    console.error('Ошибка сервера:', errorData);
-                    alert(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`);
-                } catch (parseError) {
-                    console.error('Ошибка парсинга ответа:', parseError);
-                    alert('❌ Произошла ошибка при отправке объявления');
-                }
+                const errorData = await response.json();
+                alert(`❌ Ошибка: ${errorData.error || 'Неизвестная ошибка'}`);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -839,10 +918,16 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                     </p>
                 </div>
 
-                {currentStep === 1 && (<Step1 formData={formData} handleInputChange={handleInputChange} />)}
-                {currentStep === 2 && (<Step2 formData={formData} handleInputChange={handleInputChange}
-                    handleNumberInputChange={handleNumberInputChange} handleCheckboxChange={handleCheckboxChange}
-                    handleAddressSelect={handleAddressSelect} />)}
+                {currentStep === 1 && <Step1 formData={formData} handleInputChange={handleInputChange} />}
+                {currentStep === 2 && (
+                    <Step2
+                        formData={formData}
+                        handleInputChange={handleInputChange}
+                        handleNumberInputChange={handleNumberInputChange}
+                        handleCheckboxChange={handleCheckboxChange}
+                        handleAddressSelect={handleAddressSelect}
+                    />
+                )}
                 {currentStep === 3 && (
                     <Step3
                         allImages={allImages}
@@ -852,18 +937,30 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 )}
 
                 <div className="flex justify-between pt-6 mt-6 border-t">
-                    <button type="button" onClick={currentStep === 1 ? onClose : prevStep} disabled={loading}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                    <button
+                        type="button"
+                        onClick={currentStep === 1 ? onClose : prevStep}
+                        disabled={loading}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
                         {currentStep === 1 ? 'Отмена' : 'Назад'}
                     </button>
                     {currentStep < 3 ? (
-                        <button type="button" onClick={nextStep} disabled={!validateStep(currentStep)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button
+                            type="button"
+                            onClick={nextStep}
+                            disabled={!validateStep(currentStep)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             Далее
                         </button>
                     ) : (
-                        <button type="button" onClick={handleSubmit} disabled={loading || !validateStep(3)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={loading || !validateStep(3)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             {loading ? 'Отправка...' : (editingApartment ? 'Обновить и отправить на модерацию' : 'Отправить на модерацию')}
                         </button>
                     )}

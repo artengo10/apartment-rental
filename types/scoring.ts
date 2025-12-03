@@ -1,25 +1,32 @@
-// types/scoring.ts - ОБНОВЛЕННЫЙ
-import { Apartment } from "./apartment";
-
+// types/scoring.ts
 export interface SearchCriteria {
-  propertyType: "apartment" | "house" | "studio" | "all";
-  roomCount?: string;
-  priceRange: { min: string; max: string };
+  propertyType: "all" | "apartment" | "house" | "studio";
+  roomCount: "any" | "1" | "2" | "3" | "4+";
+  priceRange: {
+    min: string;
+    max: string;
+  };
   district: string;
   amenities: string[];
-  duration: string;
-  // Поля для домов
-  houseArea?: string;
-  houseFloors?: string;
-  hasGarden?: boolean;
-  hasGarage?: boolean;
-  hasSauna?: boolean;
-  parkingSpaces?: string;
+  duration: string; // Продолжительность проживания (1-3, 3-7, 7-30, 30+ дней)
 }
 
-// Убираем ScoredApartment, если он больше не нужен
-// или оставляем для обратной совместимости
-export interface ScoredApartment extends Apartment {
-  relevanceScore: number;
-  isPromoted?: boolean;
+// Для обратной совместимости оставляем старый интерфейс, но удаляем неиспользуемые поля
+export interface ApartmentScore {
+  apartmentId: number;
+  score: number;
+  matchedCriteria: {
+    propertyType: boolean;
+    roomCount: boolean;
+    priceRange: boolean;
+    district: boolean;
+    amenities: number; // Количество совпавших удобств
+    duration: boolean;
+  };
+}
+
+export interface ScoringAlgorithmResult {
+  scores: ApartmentScore[];
+  totalApartments: number;
+  filteredApartments: number;
 }
