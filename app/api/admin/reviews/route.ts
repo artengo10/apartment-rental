@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAdmin } from "@/lib/admin-auth-utils";
 
+export const dynamic = "force-dynamic";
+
 type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export async function GET(request: NextRequest) {
