@@ -19,6 +19,12 @@ export interface Apartment {
   hostRating?: number;
   hostId: number;
   isFavorite?: boolean;
+  status?: "PENDING" | "APPROVED" | "REJECTED";
+  isPublished?: boolean;
+  isEdited?: boolean;
+  rejectionReason?: string;
+  createdAt?: string;
+  publishedAt?: string;
 }
 
 // Типы для удобств
