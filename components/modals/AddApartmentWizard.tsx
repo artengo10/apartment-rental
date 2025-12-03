@@ -1,10 +1,10 @@
 // components/modals/AddApartmentWizard.tsx
 'use client';
 
-import { useState, useCallback, memo, useRef, useEffect } from 'react';
+import { useState, useCallback, memo, useRef, useEffect, DragEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getAmenitiesByType, type Amenity, type PropertyType } from '@/lib/amenities-config';
-import { Upload, X, Loader2, Search, MapPin, AlertCircle } from 'lucide-react';
+import { Upload, X, Loader2, Search, MapPin, AlertCircle, Calendar, DollarSign, ImageIcon } from 'lucide-react';
 
 interface AddApartmentWizardProps {
     isOpen: boolean;
@@ -13,7 +13,7 @@ interface AddApartmentWizardProps {
     editingApartment?: any | null;
 }
 
-type WizardStep = 1 | 2 | 3;
+type WizardStep = 1 | 2 | 3 | 4;
 
 interface ImageItem {
     file?: File;
@@ -35,6 +35,11 @@ interface FormData {
     area: string;
     floor: string;
     amenities: string[];
+}
+
+interface PricingRule {
+    date: string;
+    price: number;
 }
 
 // Конфигурация полей для каждого типа жилья
@@ -422,10 +427,406 @@ const Step2 = memo(({ formData, handleInputChange, handleNumberInputChange, hand
     );
 });
 
-const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
+// components/modals/AddApartmentWizard.tsx - обновленный Step3
+const Step3 = memo(({ formData, pricingRules, setPricingRules }: any) => {
+    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [datePrice, setDatePrice] = useState<string>('');
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+    const [checkInTime, setCheckInTime] = useState<string>('14:00');
+    const [checkOutTime, setCheckOutTime] = useState<string>('12:00');
+    const [cleaningTime, setCleaningTime] = useState<number>(2); // Часы на уборку
+    const [timeError, setTimeError] = useState<string | null>(null);
+
+    // Вынесем эту функцию ВЫШЕ, чтобы она была доступна при генерации календаря
+    const getPriceForDate = useCallback((date: string) => {
+        if (!Array.isArray(pricingRules)) return parseInt(formData.price) || 0;
+        const rule = pricingRules.find((rule: PricingRule) => rule.date === date);
+        return rule ? rule.price : parseInt(formData.price) || 0;
+    }, [pricingRules, formData.price]);
+
+    // Валидация времени
+    useEffect(() => {
+        if (checkInTime && checkOutTime) {
+            const [checkInHours, checkInMinutes] = checkInTime.split(':').map(Number);
+            const [checkOutHours, checkOutMinutes] = checkOutTime.split(':').map(Number);
+
+            const checkInTotal = checkInHours * 60 + checkInMinutes;
+            const checkOutTotal = checkOutHours * 60 + checkOutMinutes;
+
+            if (checkInTotal <= checkOutTotal) {
+                setTimeError('Время заезда должно быть ПОСЛЕ времени выезда (минимум 1 час разницы)');
+            } else if (checkInTotal - checkOutTotal < 60) {
+                setTimeError('Минимальное время между выездом и заездом - 1 час для уборки');
+            } else {
+                setTimeError(null);
+                // Автоматически рассчитываем время уборки
+                const cleaningMinutes = checkInTotal - checkOutTotal;
+                setCleaningTime(Math.ceil(cleaningMinutes / 60));
+            }
+        }
+    }, [checkInTime, checkOutTime]);
+
+    // Генерация дней месяца для календаря
+    const generateCalendarDays = () => {
+        const days = [];
+        const firstDay = new Date(selectedYear, selectedMonth, 1);
+        const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        const daysInMonth = lastDay.getDate();
+
+        // Пустые дни в начале месяца
+        const startDayOfWeek = firstDay.getDay();
+        for (let i = 0; i < startDayOfWeek; i++) {
+            days.push(null);
+        }
+
+        // Дни месяца
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(selectedYear, selectedMonth, day);
+            const dateString = date.toISOString().split('T')[0];
+            const today = new Date();
+            const isToday = date.toDateString() === today.toDateString();
+            const price = getPriceForDate(dateString);
+            const isSpecialPrice = pricingRules && Array.isArray(pricingRules)
+                ? pricingRules.some((rule: PricingRule) => rule.date === dateString)
+                : false;
+
+            days.push({
+                date: dateString,
+                day,
+                isToday,
+                price,
+                isSpecialPrice
+            });
+        }
+
+        return days;
+    };
+
+    const days = generateCalendarDays();
+
+    const handleAddPricingRule = () => {
+        if (!selectedDate || !datePrice || isNaN(parseInt(datePrice))) return;
+
+        const price = parseInt(datePrice);
+        const existingIndex = pricingRules.findIndex((rule: PricingRule) => rule.date === selectedDate);
+
+        if (existingIndex >= 0) {
+            const newRules = [...pricingRules];
+            newRules[existingIndex] = { date: selectedDate, price };
+            setPricingRules(newRules);
+        } else {
+            setPricingRules([...pricingRules, { date: selectedDate, price }]);
+        }
+
+        setDatePrice('');
+    };
+
+    const handleRemovePricingRule = (date: string) => {
+        setPricingRules(pricingRules.filter((rule: PricingRule) => rule.date !== date));
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
+        });
+    };
+
+    const monthNames = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
+
+    const handlePrevMonth = () => {
+        if (selectedMonth === 0) {
+            setSelectedMonth(11);
+            setSelectedYear(selectedYear - 1);
+        } else {
+            setSelectedMonth(selectedMonth - 1);
+        }
+    };
+
+    const handleNextMonth = () => {
+        if (selectedMonth === 11) {
+            setSelectedMonth(0);
+            setSelectedYear(selectedYear + 1);
+        } else {
+            setSelectedMonth(selectedMonth + 1);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Календарь цен и доступности
+            </h3>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 bg-green-100 border border-green-300 rounded flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm text-blue-800">
+                        <strong>Автоматическое управление:</strong> Между гостями создается окно для уборки
+                    </p>
+                </div>
+                <p className="text-sm text-blue-700">
+                    Установите специальные цены на конкретные даты. Если цена не указана, будет использована базовая цена {parseInt(formData.price) || 0}₽.
+                </p>
+            </div>
+
+            {/* Настройка времени заезда/выезда */}
+            <div className="border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-medium mb-3">Настройка времени заезда и выезда</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Время выезда</label>
+                        <input
+                            type="time"
+                            value={checkOutTime}
+                            onChange={(e) => setCheckOutTime(e.target.value)}
+                            className="w-full p-2 border rounded"
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                            До этого времени предыдущий гость должен освободить жилье
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Время заезда</label>
+                        <input
+                            type="time"
+                            value={checkInTime}
+                            onChange={(e) => setCheckInTime(e.target.value)}
+                            className="w-full p-2 border rounded"
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                            С этого времени новый гость может заехать
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Время на уборку</label>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 p-2 bg-white border rounded">
+                                {cleaningTime} часа(ов)
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setCleaningTime(prev => Math.min(prev + 1, 24))}
+                                className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                                +
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCleaningTime(prev => Math.max(prev - 1, 1))}
+                                className="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                                -
+                            </button>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                            Автоматически рассчитывается из времени заезда/выезда
+                        </div>
+                    </div>
+                </div>
+
+                {timeError && (
+                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                        ⚠️ {timeError}
+                    </div>
+                )}
+
+                {!timeError && (
+                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
+                        ✅ Оптимальное время для уборки: с {checkOutTime} до {checkInTime} ({cleaningTime} час)
+                    </div>
+                )}
+
+                <div className="mt-3 text-xs text-gray-600">
+                    💡 <strong>Как это работает:</strong> Гость №1 выезжает до {checkOutTime} → {cleaningTime} часа на уборку → Гость №2 заезжает после {checkInTime}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Левая колонка: Календарь */}
+                <div>
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium">Выберите дату</h4>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handlePrevMonth}
+                                    className="p-1 hover:bg-gray-100 rounded"
+                                    type="button"
+                                >
+                                    ←
+                                </button>
+                                <span className="font-medium">
+                                    {monthNames[selectedMonth]} {selectedYear}
+                                </span>
+                                <button
+                                    onClick={handleNextMonth}
+                                    className="p-1 hover:bg-gray-100 rounded"
+                                    type="button"
+                                >
+                                    →
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="border rounded-lg p-4">
+                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
+                                    <div key={day} className="text-center text-xs font-medium text-gray-500">
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-7 gap-1">
+                                {days.map((day, index) => {
+                                    if (!day) {
+                                        return <div key={`empty-${index}`} className="p-2"></div>;
+                                    }
+
+                                    return (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => setSelectedDate(day.date)}
+                                            className={`p-2 text-xs rounded border ${selectedDate === day.date
+                                                    ? 'bg-blue-100 border-blue-500 text-blue-700'
+                                                    : day.isSpecialPrice
+                                                        ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                } ${day.isToday ? 'ring-1 ring-green-500' : ''}`}
+                                        >
+                                            <div className="font-medium">{day.day}</div>
+                                            <div className="text-xs mt-1">{day.price}₽</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Управление ценой для выбранной даты */}
+                    {selectedDate && (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                            <h4 className="font-medium mb-3">Настройка цены на {formatDate(selectedDate)}</h4>
+                            <div className="flex gap-2">
+                                <input
+                                    type="number"
+                                    value={datePrice}
+                                    onChange={(e) => setDatePrice(e.target.value)}
+                                    placeholder={`Базовая цена: ${parseInt(formData.price) || 0}₽`}
+                                    className="flex-1 p-2 border rounded"
+                                    min="0"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddPricingRule}
+                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                >
+                                    Установить
+                                </button>
+                            </div>
+                            {pricingRules.some((rule: PricingRule) => rule.date === selectedDate) && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemovePricingRule(selectedDate)}
+                                    className="mt-3 text-sm text-red-600 hover:text-red-800"
+                                >
+                                    Сбросить к базовой цене
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Правая колонка: Список установленных цен */}
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium">Установленные специальные цены</h4>
+                        <span className="text-sm text-gray-500">
+                            {pricingRules ? pricingRules.length : 0} {pricingRules && pricingRules.length === 1 ? 'дата' : pricingRules && pricingRules.length < 5 ? 'даты' : 'дат'}
+                        </span>
+                    </div>
+
+                    {!pricingRules || pricingRules.length === 0 ? (
+                        <div className="border rounded-lg p-8 text-center text-gray-500">
+                            <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>Специальные цены не установлены</p>
+                            <p className="text-sm mt-1">Выберите дату слева и установите цену</p>
+                        </div>
+                    ) : (
+                        <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                            {pricingRules.map((rule: PricingRule, index: number) => (
+                                <div key={index} className="p-3 flex items-center justify-between hover:bg-gray-50">
+                                    <div>
+                                        <div className="font-medium">{formatDate(rule.date)}</div>
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(rule.date).toLocaleDateString('ru-RU', { year: 'numeric' })}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-bold text-green-600">{rule.price}₽</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemovePricingRule(rule.date)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Легенда */}
+                    <div className="mt-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                            <div className="w-4 h-4 border border-gray-200 rounded bg-white"></div>
+                            <span>Базовая цена</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <div className="w-4 h-4 border border-yellow-300 rounded bg-yellow-50"></div>
+                            <span>Специальная цена</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <div className="w-4 h-4 ring-1 ring-green-500 rounded bg-white"></div>
+                            <span>Сегодня</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-medium mb-2 text-yellow-800">📅 Логика бронирования с учетом времени:</h4>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Если гость бронирует с 1 по 5 января, он должен выехать до {checkOutTime} 5 января</li>
+                    <li>• Уборка: с {checkOutTime} 5 января до {checkInTime} 5 января ({cleaningTime} часа)</li>
+                    <li>• Следующий гость может заехать после {checkInTime} 5 января</li>
+                    <li>• <strong>Вы не теряете дни аренды</strong> - между гостями нет "пустых" дней</li>
+                </ul>
+            </div>
+        </div>
+    );
+});
+
+const Step4 = memo(({ allImages, setAllImages, isUploading }: any) => {
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDragStart = (index: number) => {
         setDraggedIndex(index);
@@ -477,9 +878,16 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
         setLightboxIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        const newImageObjects = files.map((file: File) => ({
+    const handleFileSelect = (files: FileList | null) => {
+        if (!files) return;
+
+        const fileArray = Array.from(files);
+        const validFiles = fileArray.filter(file =>
+            file.type.startsWith('image/') &&
+            file.size <= 10 * 1024 * 1024 // 10MB limit
+        );
+
+        const newImageObjects = validFiles.map((file: File) => ({
             file,
             previewUrl: URL.createObjectURL(file),
             isExisting: false,
@@ -488,25 +896,70 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
         setAllImages((prev: ImageItem[]) => [...prev, ...newImageObjects].slice(0, 10));
     };
 
-    return (
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Фотографии</h3>
-            <p className="text-sm text-gray-600">
-                Первая фотография будет главной в объявлении. Перетаскивайте фото для изменения порядка.
-            </p>
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleFileSelect(e.target.files);
+        e.target.value = ''; // Reset input
+    };
 
+    const handleDropFiles = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(false);
+        handleFileSelect(e.dataTransfer.files);
+    };
+
+    const handleDragOverArea = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(true);
+    };
+
+    const handleDragLeave = () => {
+        setDragOver(false);
+    };
+
+    const handleBrowseClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    return (
+        <div className="space-y-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Фотографии жилья
+            </h3>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                    📸 <strong>Рекомендация:</strong> Добавьте минимум 3 фотографии хорошего качества.
+                    Первая фотография будет главной в объявлении.
+                </p>
+            </div>
+
+            {/* Превью фотографий с возможностью перетаскивания */}
             {allImages.length > 0 && (
-                <div className="mb-4">
-                    <div className="mb-2">
-                        <p className="text-sm font-medium text-gray-700">
-                            Фотографии: {allImages.length}/10
+                <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 className="font-medium text-gray-700">
+                                Загруженные фотографии: {allImages.length}/10
+                            </h4>
                             {allImages[0] && (
-                                <span className="text-green-600 ml-2">📸 Первая фото — главная</span>
+                                <p className="text-sm text-green-600 mt-1">
+                                    ✅ Первая фотография будет главной в объявлении
+                                </p>
                             )}
-                        </p>
+                        </div>
+                        {allImages.length < 10 && (
+                            <button
+                                type="button"
+                                onClick={handleBrowseClick}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                            >
+                                Добавить ещё
+                            </button>
+                        )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {allImages.map((image: ImageItem, index: number) => (
                             <div
                                 key={index}
@@ -520,12 +973,14 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                                     ${draggedIndex === index ? 'opacity-50' : ''}
                                     transition-all duration-200 cursor-move hover:scale-[1.02] hover:shadow-lg`}
                             >
+                                {/* Главная метка */}
                                 {index === 0 && (
                                     <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded z-10">
                                         Главная
                                     </div>
                                 )}
 
+                                {/* Иконка удаления */}
                                 <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         type="button"
@@ -537,16 +992,19 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                                     </button>
                                 </div>
 
+                                {/* Изображение */}
                                 <img
                                     src={image.previewUrl}
                                     alt={`Photo ${index + 1}`}
-                                    className="w-full h-40 object-cover"
+                                    className="w-full h-48 object-cover"
                                 />
 
-                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {/* Индикатор порядка */}
+                                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                                     #{index + 1}
                                 </div>
 
+                                {/* Подсказка при наведении */}
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
                                     <div className="text-white text-center text-sm">
                                         <div className="mb-1">🖱️ Клик для просмотра</div>
@@ -556,10 +1014,42 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Инструкция */}
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm text-gray-600 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600">📸</span>
+                                <span>Первая фотография — главная (отображается в карточке)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-red-500">🗑️</span>
+                                <span>Наведите на фото и нажмите иконку для удаления</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-blue-600">👁️</span>
+                                <span>Кликните на фото для просмотра в полном размере</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-purple-600">↕️</span>
+                                <span>Перетаскивайте фото для изменения порядка</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            {/* Область для перетаскивания файлов */}
+            <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${dragOver
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                    } ${isUploading || allImages.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onDrop={handleDropFiles}
+                onDragOver={handleDragOverArea}
+                onDragLeave={handleDragLeave}
+                onClick={handleBrowseClick}
+            >
                 <input
                     type="file"
                     multiple
@@ -568,39 +1058,87 @@ const Step3 = memo(({ allImages, setAllImages, isUploading }: any) => {
                     className="hidden"
                     id="apartment-images"
                     disabled={isUploading || allImages.length >= 10}
+                    ref={fileInputRef}
                 />
-                <label
-                    htmlFor="apartment-images"
-                    className={`cursor-pointer flex flex-col items-center 
-                        ${isUploading || allImages.length >= 10 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'} 
-                        transition-colors p-4 rounded-lg`}
-                >
+
+                <div className="flex flex-col items-center justify-center">
                     {isUploading ? (
                         <>
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                            <span className="text-sm text-gray-600 mt-2">Загрузка изображений...</span>
+                            <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
+                            <p className="text-lg font-medium text-gray-900">Загрузка изображений...</p>
+                            <p className="text-sm text-gray-600 mt-1">Пожалуйста, подождите</p>
                         </>
                     ) : (
                         <>
-                            <Upload className="w-8 h-8 text-gray-400" />
-                            <div className="mt-2">
-                                <p className="text-sm font-medium text-gray-900">
-                                    {allImages.length >= 10 ? 'Достигнут лимит 10 фото' : 'Нажмите для загрузки фото'}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    PNG, JPG, JPEG до 10MB • Максимум 10 фото
-                                </p>
-                                {allImages.length < 10 && (
-                                    <p className="text-xs text-blue-600 mt-2">
-                                        Можно загрузить ещё {10 - allImages.length} фото
-                                    </p>
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                {dragOver ? (
+                                    <Upload className="w-8 h-8 text-blue-600 animate-bounce" />
+                                ) : (
+                                    <ImageIcon className="w-8 h-8 text-blue-600" />
                                 )}
                             </div>
+
+                            <div className="mb-4">
+                                <p className="text-lg font-medium text-gray-900">
+                                    {allImages.length >= 10
+                                        ? 'Достигнут лимит 10 фотографий'
+                                        : dragOver
+                                            ? 'Отпустите для загрузки'
+                                            : 'Перетащите фото сюда или нажмите для выбора'
+                                    }
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    PNG, JPG, JPEG до 10MB • Максимум 10 фото
+                                </p>
+                            </div>
+
+                            {allImages.length < 10 && !dragOver && (
+                                <button
+                                    type="button"
+                                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleBrowseClick();
+                                    }}
+                                >
+                                    Выбрать файлы
+                                </button>
+                            )}
+
+                            {allImages.length < 10 && (
+                                <p className="text-sm text-blue-600 mt-4">
+                                    Можно загрузить ещё {10 - allImages.length} {10 - allImages.length === 1 ? 'фото' : 'фото'}
+                                </p>
+                            )}
                         </>
                     )}
-                </label>
+                </div>
             </div>
 
+            {/* Требования к фотографиям */}
+            <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium mb-2 text-gray-700">Требования к фотографиям:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                    <li className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Минимум 3 фотографии</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Хорошее качество и освещение</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Покажите все комнаты и основные удобства</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Первая фотография — самое лучшее фото жилья</span>
+                    </li>
+                </ul>
+            </div>
+
+            {/* Лайтбокс для просмотра фотографий */}
             {lightboxOpen && allImages.length > 0 && (
                 <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4">
                     <button
@@ -678,6 +1216,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
     });
 
     const [allImages, setAllImages] = useState<ImageItem[]>([]);
+    const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
 
     useEffect(() => {
         return () => {
@@ -716,12 +1255,22 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             } else {
                 setAllImages([]);
             }
+
+            // Загрузка существующих цен
+            if (editingApartment.pricingRules && Array.isArray(editingApartment.pricingRules)) {
+                const rules = editingApartment.pricingRules.map((rule: any) => ({
+                    date: new Date(rule.date).toISOString().split('T')[0],
+                    price: rule.price
+                }));
+                setPricingRules(rules);
+            }
         } else {
             setFormData({
                 title: '', description: '', price: '', type: 'APARTMENT', district: '', address: '',
                 lat: null, lng: null, rooms: '', area: '', floor: '', amenities: [],
             });
             setAllImages([]);
+            setPricingRules([]);
         }
     }, [editingApartment]);
 
@@ -733,16 +1282,15 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 const newType = value as PropertyType;
                 const resetFields: Partial<FormData> = { amenities: [] };
 
-                // Сбрасываем поля, которые не используются для нового типа
                 switch (newType) {
                     case 'APARTMENT':
-                        resetFields.area = ''; // Для квартиры сбрасываем площадь
+                        resetFields.area = '';
                         break;
                     case 'HOUSE':
-                        resetFields.floor = ''; // Для дома сбрасываем этаж
+                        resetFields.floor = '';
                         break;
                     case 'STUDIO':
-                        resetFields.area = ''; // Для студии сбрасываем площадь
+                        resetFields.area = '';
                         break;
                 }
 
@@ -783,7 +1331,9 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             case 2:
                 return !!(formData.price && formData.address && formData.lat && formData.lng);
             case 3:
-                return allImages.length > 0;
+                return true; // Календарь не обязателен
+            case 4:
+                return allImages.length >= 3; // Минимум 3 фото
             default:
                 return false;
         }
@@ -805,7 +1355,6 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             if (formData.lat) formDataToSend.append('lat', formData.lat.toString());
             if (formData.lng) formDataToSend.append('lng', formData.lng.toString());
 
-            // Добавляем только те поля, которые актуальны для типа жилья
             if (formData.rooms) formDataToSend.append('rooms', formData.rooms);
             if (formData.area && (formData.type === 'HOUSE')) {
                 formDataToSend.append('area', formData.area);
@@ -815,6 +1364,11 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
             }
 
             formData.amenities.forEach(amenity => formDataToSend.append('amenities', amenity));
+
+            // Добавляем правила ценообразования
+            if (pricingRules.length > 0) {
+                formDataToSend.append('pricingRules', JSON.stringify(pricingRules));
+            }
 
             const existingImagesUrls = allImages
                 .filter(img => img.isExisting && img.originalUrl)
@@ -834,6 +1388,13 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
 
             if (existingImagesUrls.length === 0 && newImageFiles.length === 0) {
                 alert('❌ Добавьте хотя бы одно изображение');
+                setIsUploading(false);
+                setLoading(false);
+                return;
+            }
+
+            if (allImages.length < 3) {
+                alert('❌ Добавьте минимум 3 фотографии');
                 setIsUploading(false);
                 setLoading(false);
                 return;
@@ -871,6 +1432,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                     lat: null, lng: null, rooms: '', area: '', floor: '', amenities: [],
                 });
                 setAllImages([]);
+                setPricingRules([]);
                 setCurrentStep(1);
             } else {
                 const errorData = await response.json();
@@ -886,7 +1448,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
     };
 
     const nextStep = () => {
-        if (currentStep < 3 && validateStep(currentStep)) {
+        if (currentStep < 4 && validateStep(currentStep)) {
             setCurrentStep((currentStep + 1) as WizardStep);
         }
     };
@@ -899,13 +1461,13 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">
                         {editingApartment ? 'Редактировать жилье' : 'Добавить жилье'}
                     </h2>
                     <div className="flex space-x-2">
-                        {[1, 2, 3].map((step) => (
+                        {[1, 2, 3, 4].map((step) => (
                             <div key={step} className={`w-3 h-3 rounded-full ${step === currentStep ? 'bg-blue-600' : 'bg-gray-300'}`} />
                         ))}
                     </div>
@@ -930,6 +1492,13 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                 )}
                 {currentStep === 3 && (
                     <Step3
+                        formData={formData}
+                        pricingRules={pricingRules}
+                        setPricingRules={setPricingRules}
+                    />
+                )}
+                {currentStep === 4 && (
+                    <Step4
                         allImages={allImages}
                         setAllImages={setAllImages}
                         isUploading={isUploading}
@@ -945,7 +1514,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                     >
                         {currentStep === 1 ? 'Отмена' : 'Назад'}
                     </button>
-                    {currentStep < 3 ? (
+                    {currentStep < 4 ? (
                         <button
                             type="button"
                             onClick={nextStep}
@@ -958,7 +1527,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={loading || !validateStep(3)}
+                            disabled={loading || !validateStep(4)}
                             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Отправка...' : (editingApartment ? 'Обновить и отправить на модерацию' : 'Отправить на модерацию')}

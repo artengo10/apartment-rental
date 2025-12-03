@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, isSameDay, addMonths } from 'date-fns';
@@ -9,6 +9,12 @@ import { ru } from 'date-fns/locale';
 interface OwnerPriceCalendarProps {
     apartmentId: number;
     basePrice: number;
+    checkInTime?: string;
+    checkOutTime?: string;
+    cleaningTime?: number;
+    bookings?: any[];
+    pricingRules?: any[];
+    onDataChange?: () => void;
 }
 
 interface PricingRule {
@@ -18,34 +24,34 @@ interface PricingRule {
     type: 'BASE' | 'SPECIAL';
 }
 
-export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPriceCalendarProps) {
+export default function OwnerPriceCalendar({
+    apartmentId,
+    basePrice,
+    checkInTime = '14:00',
+    checkOutTime = '12:00',
+    cleaningTime = 2,
+    bookings = [],
+    pricingRules = [],
+    onDataChange
+}: OwnerPriceCalendarProps) {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [customPrice, setCustomPrice] = useState<string>('');
-    const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
-    const [bookedDates, setBookedDates] = useState<Date[]>([]);
     const [loading, setLoading] = useState(false);
     const [month, setMonth] = useState(new Date());
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // Загрузка данных
-    useEffect(() => {
-        loadCalendarData();
-    }, [apartmentId, month]);
-
-    const loadCalendarData = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch(`/api/apartments/${apartmentId}/pricing`);
-            const data = await response.json();
-            setPricingRules(data.pricingRules || []);
-            setBookedDates(data.bookedDates?.map((d: string) => new Date(d)) || []);
-        } catch (error) {
-            console.error('Ошибка загрузки данных:', error);
-            showMessage('error', 'Не удалось загрузить данные календаря');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Преобразуем bookings в массив занятых дат
+    const bookedDates = useMemo(() => {
+        const dates: Date[] = [];
+        bookings.forEach(booking => {
+            const start = new Date(booking.startDate);
+            const end = new Date(booking.endDate);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                dates.push(new Date(d));
+            }
+        });
+        return dates;
+    }, [bookings]);
 
     // Получить цену на дату
     const getPriceForDate = (date: Date): number => {
@@ -77,6 +83,7 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
             return;
         }
 
+        setLoading(true);
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch(`/api/apartments/${apartmentId}/pricing`, {
@@ -98,26 +105,18 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
 
             const updatedRule = await response.json();
 
-            // Обновляем локальное состояние
-            setPricingRules(prev => {
-                const existingIndex = prev.findIndex(r =>
-                    format(new Date(r.date), 'yyyy-MM-dd') === format(selectedDate!, 'yyyy-MM-dd')
-                );
-
-                if (existingIndex >= 0) {
-                    const newRules = [...prev];
-                    newRules[existingIndex] = updatedRule;
-                    return newRules;
-                } else {
-                    return [...prev, updatedRule];
-                }
-            });
-
             setCustomPrice('');
             showMessage('success', 'Цена успешно обновлена');
+
+            // Обновляем данные в родительском компоненте
+            if (onDataChange) {
+                onDataChange();
+            }
         } catch (error: any) {
             console.error('Ошибка установки цены:', error);
             showMessage('error', error.message || 'Ошибка при сохранении цены');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -125,6 +124,7 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
     const handleResetPrice = async () => {
         if (!selectedDate) return;
 
+        setLoading(true);
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch(
@@ -141,19 +141,65 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
                 throw new Error('Ошибка сброса цены');
             }
 
-            // Удаляем из локального состояния
-            setPricingRules(prev =>
-                prev.filter(r =>
-                    format(new Date(r.date), 'yyyy-MM-dd') !== format(selectedDate, 'yyyy-MM-dd')
-                )
-            );
-
             setCustomPrice('');
             showMessage('success', 'Цена сброшена к базовой');
+
+            // Обновляем данные в родительском компоненте
+            if (onDataChange) {
+                onDataChange();
+            }
         } catch (error) {
             console.error('Ошибка сброса цены:', error);
             showMessage('error', 'Ошибка при сбросе цены');
+        } finally {
+            setLoading(false);
         }
+    };
+
+    // Логика для расчета доступных дат с учетом времени уборки
+    const calculateAvailableDates = (startDate: Date, endDate: Date) => {
+        // Учитываем время уборки между бронированиями
+        const adjustedStartDate = new Date(startDate);
+        if (bookings.length > 0) {
+            // Проверяем, что между бронированиями есть время для уборки
+            const lastBooking = bookings[bookings.length - 1];
+            const lastBookingEnd = new Date(lastBooking.endDate);
+            const cleaningHours = cleaningTime;
+
+            // Добавляем время уборки к дате окончания последнего бронирования
+            lastBookingEnd.setHours(lastBookingEnd.getHours() + cleaningHours);
+
+            // Если новый заезд раньше, чем закончится уборка
+            if (startDate < lastBookingEnd) {
+                adjustedStartDate.setTime(lastBookingEnd.getTime());
+            }
+        }
+        return adjustedStartDate;
+    };
+
+    // Визуализация времени в ячейке календаря
+    const renderTimeInfo = (date: Date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        const hasBooking = bookings.some(booking => {
+            const bookingStart = new Date(booking.startDate).toISOString().split('T')[0];
+            const bookingEnd = new Date(booking.endDate).toISOString().split('T')[0];
+            return dateStr >= bookingStart && dateStr <= bookingEnd;
+        });
+
+        if (hasBooking) {
+            return (
+                <div className="text-xs mt-1">
+                    <div>Выезд: {checkOutTime}</div>
+                    <div>Уборка: {cleaningTime}ч</div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="text-xs mt-1 text-gray-500">
+                <div>Заезд: {checkInTime}</div>
+            </div>
+        );
     };
 
     // Кастомный рендеринг дня
@@ -168,7 +214,7 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
 
         return (
             <div className={`
-        relative py-2 px-1 h-16 flex flex-col items-center justify-center
+        relative py-2 px-1 h-20 flex flex-col items-center justify-center
         ${isToday ? 'bg-blue-50' : ''}
         ${isSelected ? 'bg-blue-100 ring-2 ring-blue-500' : ''}
         ${isBooked ? 'bg-red-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -186,6 +232,7 @@ export default function OwnerPriceCalendar({ apartmentId, basePrice }: OwnerPric
         `}>
                     {isBooked ? 'Занято' : `${price} ₽`}
                 </div>
+                {renderTimeInfo(date)}
             </div>
         );
     };

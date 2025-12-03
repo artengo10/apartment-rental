@@ -103,6 +103,9 @@ model Apartment {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   publishedAt   DateTime?
+  checkInTime      String   @default("14:00")
+  checkOutTime     String   @default("12:00")
+  cleaningTime     Int      @default(2) // в часах
 
   // Отношения
   bookings      Booking[]
