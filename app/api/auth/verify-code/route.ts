@@ -8,57 +8,79 @@ export async function POST(request: NextRequest) {
   try {
     const { email, code } = await request.json();
 
-    // Находим пользователя по email
-    const user = await prisma.user.findUnique({
+    console.log("Verifying code for:", email);
+
+    // Ищем пользователя во временной таблице
+    const pendingUser = await prisma.pendingUser.findUnique({
       where: { email },
     });
 
-    if (!user) {
+    if (!pendingUser) {
       return NextResponse.json(
-        { error: "Пользователь не найден" },
+        { error: "Пользователь не найден или срок действия кода истек" },
         { status: 404 }
       );
     }
 
-    // Проверяем код и его срок действия
-    if (user.verificationCode !== code) {
+    // Проверяем код
+    if (pendingUser.verificationCode !== code) {
       return NextResponse.json(
         { error: "Неверный код подтверждения" },
         { status: 400 }
       );
     }
 
-    if (user.codeExpires && user.codeExpires < new Date()) {
+    // Проверяем срок действия кода
+    if (pendingUser.codeExpires < new Date()) {
+      await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
       return NextResponse.json(
-        { error: "Срок действия кода истек" },
+        {
+          error:
+            "Срок действия кода истек. Пожалуйста, зарегистрируйтесь снова.",
+        },
         { status: 400 }
       );
     }
 
-    // Активируем аккаунт и очищаем код
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+    // Проверяем, нет ли уже пользователя в основной таблице
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
+      return NextResponse.json(
+        { error: "Пользователь с таким email уже существует" },
+        { status: 400 }
+      );
+    }
+
+    // Создаем пользователя в основной таблице
+    const user = await prisma.user.create({
       data: {
+        email: pendingUser.email,
+        password: pendingUser.password,
+        name: pendingUser.name,
+        phone: pendingUser.phone,
         isVerified: true,
-        verificationCode: null,
-        codeExpires: null,
       },
     });
 
+    console.log("User created in main table:", user.id);
+
+    // Удаляем из временной таблицы
+    await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
+
     // Генерируем токен
-    const token = generateToken(updatedUser.id);
+    const token = generateToken(user.id);
 
     // Возвращаем токен и данные пользователя
-    const {
-      password,
-      verificationCode: _,
-      codeExpires: __,
-      ...userWithoutSensitiveData
-    } = updatedUser;
+    const { password, ...userWithoutPassword } = user;
 
     return NextResponse.json({
       token,
-      user: userWithoutSensitiveData,
+      user: userWithoutPassword,
+      message: "Аккаунт успешно подтвержден",
     });
   } catch (error) {
     console.error("Verification error:", error);

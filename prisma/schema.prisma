@@ -42,8 +42,14 @@ model User {
   isVerified      Boolean   @default(false)
   verificationCode String?   
   codeExpires     DateTime? 
+  
+  // Поля для сброса пароля
+  resetPasswordCode String?
+  resetPasswordCodeExpires DateTime?
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
 
   // Отношения
   apartments      Apartment[]
@@ -57,6 +63,20 @@ model User {
   pricingRules    PricingRule[]
 
   @@map("users")
+}
+
+// Добавьте после модели User
+model PendingUser {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  name            String
+  phone           String
+  verificationCode String
+  codeExpires     DateTime
+  createdAt       DateTime  @default(now())
+
+  @@map("pending_users")
 }
 
 model Apartment {

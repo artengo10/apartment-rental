@@ -16,10 +16,55 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<boolean>;
     register: (userData: RegisterData) => Promise<boolean>;
     verifyCode: (email: string, code: string) => Promise<boolean>;
+    forgotPassword: (email: string) => Promise<boolean>; // ДОБАВЬТЕ ЭТУ СТРОКУ
+    resetPassword: (email: string, code: string, newPassword: string) => Promise<boolean>; // И ЭТУ
     logout: () => void;
     isLoading: boolean;
-    updateUser: (userData: User) => void; // НОВАЯ ФУНКЦИЯ
+    updateUser: (userData: User) => void;
 }
+
+// Внутри AuthProvider добавляем реализации:
+const forgotPassword = async (email: string): Promise<boolean> => {
+    try {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+
+        if (response.ok) {
+            return true;
+        } else {
+            const data = await response.json();
+            console.error('Forgot password error:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return false;
+    }
+};
+
+const resetPassword = async (email: string, code: string, newPassword: string): Promise<boolean> => {
+    try {
+        const response = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code, newPassword }),
+        });
+
+        if (response.ok) {
+            return true;
+        } else {
+            const data = await response.json();
+            console.error('Reset password error:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return false;
+    }
+};
 
 interface RegisterData {
     name: string;
@@ -210,6 +255,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             login,
             register,
             verifyCode,
+            forgotPassword, // ДОБАВЛЯЕМ
+            resetPassword, // ДОБАВЛЯЕМ
             logout,
             isLoading,
             updateUser

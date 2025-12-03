@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import LoginModal from './modals/LoginModal';
 import RegisterModal from './modals/RegisterModal';
+import ForgotPasswordModal from './modals/ForgotPasswordModal'; 
 import AddApartmentModal from './modals/AddApartmentWizard';
 import { Heart, MessageCircle, User, Plus } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export default function Header() {
     const { favoriteIds } = useFavorites();
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false); // ДОБАВИТЬ ЭТОТ STATE
     const [showAddApartmentModal, setShowAddApartmentModal] = useState(false);
 
     const handleLogout = () => {
@@ -128,12 +130,24 @@ export default function Header() {
                     setShowLoginModal(false);
                     setShowRegisterModal(true);
                 }}
+                onForgotPassword={() => {
+                    setShowLoginModal(false);
+                    setShowForgotPasswordModal(true); // ДОБАВИТЬ ЭТУ ФУНКЦИЮ
+                }}
             />
             <RegisterModal
                 isOpen={showRegisterModal}
                 onClose={() => setShowRegisterModal(false)}
                 onSwitchToLogin={() => {
                     setShowRegisterModal(false);
+                    setShowLoginModal(true);
+                }}
+            />
+            <ForgotPasswordModal
+                isOpen={showForgotPasswordModal}
+                onClose={() => setShowForgotPasswordModal(false)}
+                onSwitchToLogin={() => {
+                    setShowForgotPasswordModal(false);
                     setShowLoginModal(true);
                 }}
             />

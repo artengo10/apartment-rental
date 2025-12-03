@@ -6,9 +6,15 @@ interface LoginModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSwitchToRegister: () => void;
+    onForgotPassword: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
+export default function LoginModal({
+    isOpen,
+    onClose,
+    onSwitchToRegister,
+    onForgotPassword
+}: LoginModalProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -52,6 +58,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             {error}
                         </div>
                     )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Email
@@ -64,6 +71,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             required
                         />
                     </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Пароль
@@ -76,6 +84,17 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             required
                         />
                     </div>
+
+                    <div className="text-right">
+                        <button
+                            type="button"
+                            onClick={onForgotPassword}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                            Забыли пароль?
+                        </button>
+                    </div>
+
                     <div className="flex gap-3 pt-4">
                         <button
                             type="button"
@@ -92,6 +111,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                             {isLoading ? 'Вход...' : 'Войти'}
                         </button>
                     </div>
+
                     <div className="text-center pt-4">
                         <button
                             type="button"

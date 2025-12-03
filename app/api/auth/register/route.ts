@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("Request body:", body);
 
-    const { name, email, phone, password,} = body;
+    const { name, email, phone, password } = body;
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json(
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Проверяем существование пользователя
+    // Проверяем существование в основной таблице
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Удаляем старые pending записи для этого email
+    await prisma.pendingUser.deleteMany({
+      where: { email },
+    });
+
     // Хешируем пароль
     const hashedPassword = await hashPassword(password);
 
@@ -43,36 +48,32 @@ export async function POST(request: NextRequest) {
     const verificationCode = generateVerificationCode();
     const codeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
 
-    console.log("Creating user...");
+    console.log("Creating pending user...");
 
-    // Создаем пользователя
-    const user = await prisma.user.create({
+    // Создаем запись во временной таблице
+    const pendingUser = await prisma.pendingUser.create({
       data: {
-        name,
         email,
-        phone,
         password: hashedPassword,
-        // Убираем role
+        name,
+        phone,
         verificationCode,
         codeExpires,
-        isVerified: false,
       },
     });
 
-    console.log("User created successfully:", {
-      id: user.id,
-      email: user.email,
+    console.log("Pending user created successfully:", {
+      id: pendingUser.id,
+      email: pendingUser.email,
     });
 
-    // Отправляем код подтверждения (в консоль для разработки)
+    // Отправляем код подтверждения
     await sendVerificationCode(email, verificationCode);
-
-    const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(
       {
         message: "Код подтверждения отправлен на ваш email",
-        user: userWithoutPassword,
+        email: pendingUser.email,
       },
       { status: 201 }
     );
