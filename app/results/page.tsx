@@ -1,3 +1,4 @@
+// app/results/page.tsx - ОБНОВЛЕННЫЙ
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -8,9 +9,8 @@ import Link from 'next/link';
 import { getSearchCriteria } from '@/lib/search-utils';
 import { SearchCriteria } from '@/types/scoring';
 import { filterApartments } from '@/lib/filter-apartments';
-import Header from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
-import { Apartment } from '@/types/apartment'; // Используем единый интерфейс
+import { Apartment } from '@/types/apartment';
 
 // Интерфейс для данных из API
 interface ApiApartment {
@@ -67,8 +67,6 @@ export default function ResultsPage() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Функция преобразования данных из API в формат Apartment
-
     const transformApiDataToApartment = (apiApartment: ApiApartment): Apartment => {
         const transformType = (type: string): "apartment" | "house" | "studio" => {
             const lowerType = type.toLowerCase();
@@ -91,7 +89,7 @@ export default function ResultsPage() {
             rooms: apiApartment.rooms,
             area: apiApartment.area,
             floor: apiApartment.floor,
-            images: apiApartment.images || [], 
+            images: apiApartment.images || [],
             amenities: apiApartment.amenities || [],
             hostName: apiApartment.host?.name || 'Неизвестно',
             hostId: apiApartment.hostId,
@@ -164,9 +162,8 @@ export default function ResultsPage() {
 
     if (!isClient) {
         return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <Header />
-                <div className="container mx-auto px-3 sm:px-6 py-6 flex-1">
+            <div className="pt-14 pb-16 min-h-screen">
+                <div className="container mx-auto px-3 sm:px-6 py-6">
                     <div className="mb-6">
                         <h2 className="text-lg sm:text-2xl font-bold mb-2">Загрузка результатов...</h2>
                         <p className="text-gray-600 text-xs sm:text-base">Нижний Новгород</p>
@@ -186,9 +183,8 @@ export default function ResultsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <Header />
-                <div className="container mx-auto px-3 sm:px-6 py-6 flex-1">
+            <div className="pt-14 pb-16 min-h-screen">
+                <div className="container mx-auto px-3 sm:px-6 py-6">
                     <div className="mb-6">
                         <h2 className="text-lg sm:text-2xl font-bold mb-2">Загрузка объявлений...</h2>
                         <p className="text-gray-600 text-xs sm:text-base">Нижний Новгород</p>
@@ -208,8 +204,7 @@ export default function ResultsPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex flex-col bg-background">
-                <Header />
+            <div className="pt-14 pb-16 min-h-screen">
                 <div className="container mx-auto px-3 sm:px-6 py-6 flex-1 flex flex-col items-center justify-center">
                     <div className="text-center max-w-md">
                         <div className="text-6xl mb-4">😔</div>
@@ -238,10 +233,8 @@ export default function ResultsPage() {
             searchCriteria?.propertyType === 'studio' ? 'Студии' : 'Все варианты';
 
     return (
-        <div className="min-h-screen flex flex-col bg-background">
-            <Header />
-
-            <main className="flex-1 container mx-auto px-3 sm:px-6 py-6 flex flex-col">
+        <div className="pt-14 pb-16 min-h-screen">
+            <div className="container mx-auto px-3 sm:px-6 py-6">
                 <div className="mb-6 flex justify-between items-center">
                     <div>
                         <h2 className="text-lg sm:text-2xl font-bold mb-2 whitespace-nowrap">
@@ -341,7 +334,7 @@ export default function ResultsPage() {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
 
             {showFilterModal && (
                 <FilterModal
@@ -351,26 +344,12 @@ export default function ResultsPage() {
                 />
             )}
 
-            <footer className="bg-muted/50 border-t border-gray-300 mt-12">
-                <div className="container mx-auto p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
-                        <div className="text-center sm:text-left">
-                            <Link href="/" className="hover:opacity-80 transition-opacity">
-                                <h3 className="text-base sm:text-lg font-semibold">СъёмБронь</h3>
-                                <p className="text-xs sm:text-sm text-muted-foreground">Умный поиск жилья</p>
-                            </Link>
-                        </div>
-                        <div className="text-center sm:text-right">
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                                © 2024 Все права защищены
-                            </p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                                Телефон: +7 (999) 123-45-67
-                            </p>
-                        </div>
-                    </div>
+            {/* Упрощенный футер */}
+            {filteredApartments.length > 0 && (
+                <div className="mt-6 text-center text-xs text-gray-500">
+                    <p>© 2024 СъёмБронь. Все права защищены.</p>
                 </div>
-            </footer>
+            )}
         </div>
     );
 }

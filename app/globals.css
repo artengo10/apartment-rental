@@ -120,3 +120,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Плавная прокрутка */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Убираем отступы у основного контейнера */
+main {
+  padding: 0 !important;
+}
