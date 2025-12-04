@@ -51,7 +51,7 @@ export async function GET(
         id,
         status: "APPROVED", // Только одобренные
         isPublished: true,
-        isEdited: true,
+      
       },
       include: {
         host: {
