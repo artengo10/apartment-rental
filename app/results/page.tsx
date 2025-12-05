@@ -1,4 +1,4 @@
-// app/results/page.tsx - ОБНОВЛЕННЫЙ
+// app/results/page.tsx - ПОЛНЫЙ КОД С SIDEBAR
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -162,7 +162,7 @@ export default function ResultsPage() {
 
     if (!isClient) {
         return (
-            <div className="pt-14 pb-16 min-h-screen">
+            <div className="pt-14 pb-16 lg:pb-0">
                 <div className="container mx-auto px-3 sm:px-6 py-6">
                     <div className="mb-6">
                         <h2 className="text-lg sm:text-2xl font-bold mb-2">Загрузка результатов...</h2>
@@ -183,7 +183,7 @@ export default function ResultsPage() {
 
     if (loading) {
         return (
-            <div className="pt-14 pb-16 min-h-screen">
+            <div className="pt-14 pb-16 lg:pb-0">
                 <div className="container mx-auto px-3 sm:px-6 py-6">
                     <div className="mb-6">
                         <h2 className="text-lg sm:text-2xl font-bold mb-2">Загрузка объявлений...</h2>
@@ -204,7 +204,7 @@ export default function ResultsPage() {
 
     if (error) {
         return (
-            <div className="pt-14 pb-16 min-h-screen">
+            <div className="pt-14 pb-16 lg:pb-0">
                 <div className="container mx-auto px-3 sm:px-6 py-6 flex-1 flex flex-col items-center justify-center">
                     <div className="text-center max-w-md">
                         <div className="text-6xl mb-4">😔</div>
@@ -233,7 +233,7 @@ export default function ResultsPage() {
             searchCriteria?.propertyType === 'studio' ? 'Студии' : 'Все варианты';
 
     return (
-        <div className="pt-14 pb-16 min-h-screen">
+        <div className="pt-14 pb-16 lg:pb-0">
             <div className="container mx-auto px-3 sm:px-6 py-6">
                 <div className="mb-6 flex justify-between items-center">
                     <div>

@@ -39,6 +39,17 @@ export default function OwnerPriceCalendar({
     const [loading, setLoading] = useState(false);
     const [month, setMonth] = useState(new Date());
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Преобразуем bookings в массив занятых дат
     const bookedDates = useMemo(() => {
@@ -214,40 +225,42 @@ export default function OwnerPriceCalendar({
 
         return (
             <div className={`
-        relative py-2 px-1 h-20 flex flex-col items-center justify-center
-        ${isToday ? 'bg-blue-50' : ''}
-        ${isSelected ? 'bg-blue-100 ring-2 ring-blue-500' : ''}
-        ${isBooked ? 'bg-red-50 cursor-not-allowed' : 'cursor-pointer'}
-        hover:bg-gray-50 rounded-md transition-colors
-      `}>
-                <div className="text-sm font-medium mb-1">{day}</div>
+                relative py-1 px-0.5 ${isMobile ? 'h-12' : 'h-16'} flex flex-col items-center justify-center
+                ${isToday ? 'bg-blue-50' : ''}
+                ${isSelected ? 'bg-blue-100 ring-1 md:ring-2 ring-blue-500' : ''}
+                ${isBooked ? 'bg-red-50 cursor-not-allowed' : 'cursor-pointer'}
+                hover:bg-gray-50 rounded-md transition-colors
+            `}>
+                <div className="text-xs md:text-sm font-medium mb-0.5">{day}</div>
                 <div className={`
-          text-xs px-1 py-0.5 rounded w-full text-center truncate
-          ${isBooked
+                    text-[10px] md:text-xs px-0.5 md:px-1 py-0.5 rounded w-full text-center truncate
+                    ${isBooked
                         ? 'bg-red-100 text-red-700'
                         : isSpecial
                             ? 'bg-yellow-100 text-yellow-700'
                             : 'bg-gray-100 text-gray-600'
                     }
-        `}>
-                    {isBooked ? 'Занято' : `${price} ₽`}
+                `}>
+                    {isBooked ? (isMobile ? '❌' : 'Занято') : `${isMobile ? '' : ''}${price} ₽`}
                 </div>
-                {renderTimeInfo(date)}
+                {/* Скрыть время на мобилках */}
+                {!isMobile && renderTimeInfo(date)}
             </div>
         );
     };
 
+    // ОБНОВИТЬ основную разметку:
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
             {message && (
-                <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <div className={`mb-4 p-3 md:p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                     {message.text}
                 </div>
             )}
 
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 md:gap-8">
                 {/* Календарь */}
-                <div className="bg-white rounded-lg border p-4">
+                <div className="bg-white rounded-lg border p-2 md:p-4 order-2 lg:order-1">
                     <DatePicker
                         selected={selectedDate}
                         onChange={(date: Date | null) => setSelectedDate(date)}
@@ -265,8 +278,8 @@ export default function OwnerPriceCalendar({
                 </div>
 
                 {/* Панель управления */}
-                <div className="bg-white rounded-lg border p-6">
-                    <h3 className="text-lg font-semibold mb-4">
+                <div className="bg-white rounded-lg border p-4 md:p-6 order-1 lg:order-2">
+                    <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">
                         {selectedDate
                             ? `Управление ценой на ${format(selectedDate, 'dd.MM.yyyy')}`
                             : 'Выберите дату для изменения цены'

@@ -1,4 +1,4 @@
-// chats/[chatId]/page.tsx - ОБНОВЛЕННЫЙ С КНОПКОЙ ОТЗЫВА
+// app/chats/[chatId]/page.tsx - ПОЛНОСТЬЮ АДАПТИВНЫЙ
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import { useSocket } from '@/hooks/useSocket';
 import CreateReviewModal from '@/components/modals/CreateReviewModal';
+import { Menu, X, ArrowLeft, MapPin, Star } from 'lucide-react';
 
 interface Message {
     id: number;
@@ -51,17 +52,29 @@ export default function ChatPage() {
     const [otherUserTyping, setOtherUserTyping] = useState(false);
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [hasReviewed, setHasReviewed] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isMounted, setIsMounted] = useState(false);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setIsMounted(true);
+
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
         return () => {
             setIsMounted(false);
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current);
             }
+            window.removeEventListener('resize', checkMobile);
         };
     }, []);
 
@@ -100,7 +113,7 @@ export default function ChatPage() {
     }, [socket, isConnected, chatId, user]);
 
     // Загрузка чата и сообщений (только один раз при монтировании)
-    const fetchChat = async () => {
+    const fetchChat = useCallback(async () => {
         if (!isMounted) return;
 
         try {
@@ -139,7 +152,7 @@ export default function ChatPage() {
                 setLoading(false);
             }
         }
-    };
+    }, [chatId, isMounted]);
 
     // Проверяем, оставлял ли пользователь уже отзыв для этого чата
     const checkIfReviewed = async (hostId: number, chatId: number) => {
@@ -242,7 +255,7 @@ export default function ChatPage() {
         }
 
         fetchChat();
-    }, [user, isLoading, chatId, isMounted, router]);
+    }, [user, isLoading, chatId, isMounted, router, fetchChat]);
 
     const getOtherUser = () => {
         if (!chat || !user) return null;
@@ -254,6 +267,41 @@ export default function ChatPage() {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const today = new Date();
+
+        if (date.toDateString() === today.toDateString()) {
+            return 'Сегодня';
+        }
+
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (date.toDateString() === yesterday.toDateString()) {
+            return 'Вчера';
+        }
+
+        return date.toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long'
+        });
+    };
+
+    // Группировка сообщений по датам
+    const groupedMessages = () => {
+        const groups: { [key: string]: Message[] } = {};
+
+        messages.forEach(message => {
+            const date = new Date(message.createdAt).toDateString();
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(message);
+        });
+
+        return groups;
     };
 
     if (isLoading) {
@@ -320,6 +368,7 @@ export default function ChatPage() {
     }
 
     const otherUser = getOtherUser();
+    const messageGroups = groupedMessages();
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -333,7 +382,61 @@ export default function ChatPage() {
             )}
 
             <div className="pt-12">
-                <div className="bg-white border-b shadow-sm sticky top-16 z-10">
+                {/* Мобильный header */}
+                <div className="lg:hidden bg-white border-b shadow-sm sticky top-12 z-10">
+                    <div className="container mx-auto px-3 py-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => router.push('/chats')}
+                                    className="p-2"
+                                >
+                                    <ArrowLeft className="w-5 h-5 text-gray-700" />
+                                </button>
+
+                                <Link
+                                    href={`/profile/${otherUser?.id}`}
+                                    className="flex items-center gap-2"
+                                >
+                                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                        {otherUser?.name?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h1 className="font-semibold text-gray-900 text-sm">
+                                            {otherUser?.name}
+                                        </h1>
+                                        <p className="text-xs text-gray-500">
+                                            {isConnected ? 'Онлайн' : 'Офлайн'}
+                                        </p>
+                                    </div>
+                                </Link>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                {!hasReviewed && (
+                                    <button
+                                        onClick={() => setShowReviewModal(true)}
+                                        className="p-2 bg-green-600 text-white rounded-lg"
+                                        title="Оставить отзыв"
+                                    >
+                                        <Star className="w-4 h-4" />
+                                    </button>
+                                )}
+
+                                <Link
+                                    href={`/apartment/${chat.apartment.id}`}
+                                    className="p-2 text-gray-600"
+                                    title="Объявление"
+                                >
+                                    <MapPin className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Десктоп header */}
+                <div className="hidden lg:block bg-white border-b shadow-sm sticky top-16 z-10">
                     <div className="container mx-auto px-4 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
@@ -341,9 +444,7 @@ export default function ChatPage() {
                                     href="/chats"
                                     className="text-blue-600 hover:text-blue-800 flex items-center"
                                 >
-                                    <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
+                                    <ArrowLeft className="w-5 h-5 mr-1" />
                                     Назад к чатам
                                 </Link>
 
@@ -384,7 +485,7 @@ export default function ChatPage() {
                                         onClick={() => setShowReviewModal(true)}
                                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                                     >
-                                        <span>⭐</span>
+                                        <Star className="w-4 h-4" />
                                         Оставить отзыв
                                     </button>
                                 )}
@@ -393,9 +494,12 @@ export default function ChatPage() {
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4 py-6 max-w-4xl">
-                    <div className="bg-white rounded-lg shadow-sm border h-[600px] flex flex-col">
-                        <div className="flex-1 p-4 overflow-y-auto">
+                <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6 max-w-4xl">
+                    <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-180px)] lg:h-[600px] flex flex-col">
+                        <div
+                            ref={chatContainerRef}
+                            className="flex-1 p-3 lg:p-4 overflow-y-auto"
+                        >
                             {messages.length === 0 ? (
                                 <div className="text-center text-gray-500 mt-8">
                                     <div className="text-4xl mb-4">💬</div>
@@ -405,25 +509,39 @@ export default function ChatPage() {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
-                                    {messages.map((message) => (
-                                        <div
-                                            key={message.id}
-                                            className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${message.senderId === user.id
-                                                    ? 'bg-blue-500 text-white rounded-br-none'
-                                                    : 'bg-gray-200 text-gray-900 rounded-bl-none'
-                                                    }`}
-                                            >
-                                                <p className="text-sm">{message.content}</p>
-                                                <p
-                                                    className={`text-xs mt-1 ${message.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
-                                                        }`}
-                                                >
-                                                    {formatTime(message.createdAt)}
-                                                </p>
+                                <div className="space-y-6">
+                                    {Object.entries(messageGroups).map(([date, dateMessages]) => (
+                                        <div key={date}>
+                                            {/* Дата-разделитель */}
+                                            <div className="flex justify-center my-4">
+                                                <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs">
+                                                    {formatDate(date)}
+                                                </div>
+                                            </div>
+
+                                            {/* Сообщения за эту дату */}
+                                            <div className="space-y-3">
+                                                {dateMessages.map((message) => (
+                                                    <div
+                                                        key={message.id}
+                                                        className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
+                                                    >
+                                                        <div
+                                                            className={`max-w-[85%] lg:max-w-md px-3 py-2 rounded-2xl ${message.senderId === user.id
+                                                                ? 'bg-blue-500 text-white rounded-br-none'
+                                                                : 'bg-gray-200 text-gray-900 rounded-bl-none'
+                                                                }`}
+                                                        >
+                                                            <p className="text-sm break-words">{message.content}</p>
+                                                            <p
+                                                                className={`text-xs mt-1 ${message.senderId === user.id ? 'text-blue-100' : 'text-gray-500'
+                                                                    }`}
+                                                            >
+                                                                {formatTime(message.createdAt)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
@@ -449,20 +567,21 @@ export default function ChatPage() {
                             )}
                         </div>
 
-                        <form onSubmit={sendMessage} className="p-4 border-t">
-                            <div className="flex space-x-4">
+                        <form onSubmit={sendMessage} className="p-3 lg:p-4 border-t">
+                            <div className="flex space-x-3">
                                 <input
                                     type="text"
                                     value={newMessage}
                                     onChange={handleInputChange}
                                     placeholder="Введите сообщение..."
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="flex-1 px-4 py-2 lg:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
                                     disabled={!isConnected}
+                                    autoFocus={!isMobile}
                                 />
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || !isConnected}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-4 lg:px-6 py-2 lg:py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm lg:text-base whitespace-nowrap"
                                 >
                                     {isConnected ? 'Отправить' : 'Подключение...'}
                                 </button>

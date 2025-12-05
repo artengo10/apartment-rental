@@ -1,4 +1,4 @@
-// components/BottomNavigationBar.tsx
+// components/BottomNavigationBar.tsx - ОБНОВЛЕННЫЙ
 'use client';
 
 import React from 'react';
@@ -76,8 +76,7 @@ const BottomNavigationBar = () => {
 
     return (
         <>
-            {/* ФИКСИРОВАННАЯ нижняя навигация */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 z-50 md:hidden">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 z-50 lg:hidden">
                 <div className="flex justify-around items-center h-14">
                     {navItems.map((item) => {
                         const content = (

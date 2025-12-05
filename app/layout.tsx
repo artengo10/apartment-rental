@@ -1,9 +1,11 @@
+// app/layout.tsx
 'use client';
 
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import BottomNavigationBar from '@/components/BottomNavigationBar';
+import Sidebar from '@/components/Sidebar';
 import './globals.css';
 import { usePathname } from 'next/navigation';
 
@@ -19,18 +21,26 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
 
-  const showBottomNavigation = !['/'].includes(pathname);
-  const showHeader = true;
+  // Определяем, нужна ли навигация на текущей странице
+  const showNavigation = !['/'].includes(pathname); // НЕ показываем на главной
 
   return (
     <html lang="ru" className={inter.className}>
-      <body className={`relative min-h-screen ${showHeader ? 'pt-[56px]' : ''} ${showBottomNavigation ? 'pb-[56px] md:pb-0' : ''}`}>
+      <body className="min-h-screen bg-background">
         <AuthProvider>
-          {showHeader && <Header />}
-          {showBottomNavigation && <BottomNavigationBar />}
-          <main>
+          {/* Header всегда наверху */}
+          <Header />
+
+          {/* Sidebar для десктопов (если нужна навигация) */}
+          {showNavigation && <Sidebar />}
+
+          {/* Основной контент с отступами */}
+          <main className={`min-h-screen ${showNavigation ? 'lg:ml-64' : ''}`}>
             {children}
           </main>
+
+          {/* BottomNavigationBar для мобильных (если нужна навигация) */}
+          {showNavigation && <BottomNavigationBar />}
         </AuthProvider>
       </body>
     </html>

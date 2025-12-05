@@ -1,13 +1,12 @@
-// components/Header.tsx
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from './modals/LoginModal';
 import RegisterModal from './modals/RegisterModal';
 import ForgotPasswordModal from './modals/ForgotPasswordModal';
 import AddApartmentModal from './modals/AddApartmentWizard';
-import { Plus, User as UserIcon } from 'lucide-react';
+import { User as UserIcon, Plus } from 'lucide-react';
 
 export default function Header() {
     const { user, logout } = useAuth();
@@ -15,56 +14,79 @@ export default function Header() {
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
     const [showAddApartmentModal, setShowAddApartmentModal] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 10);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
     const getDisplayName = (fullName: string): string => {
         const nameParts = fullName.trim().split(/\s+/).filter(part => part.length > 0);
         if (nameParts.length >= 2) {
-            return nameParts.slice(1).join(' ');
+            // Возвращаем только имя (первое слово) и отчество (второе слово)
+            return `${nameParts[0]} ${nameParts[1]}`;
         }
         return nameParts[0] || 'Пользователь';
     };
 
+    const handleLogout = () => {
+        logout();
+    };
+
     return (
         <>
-            {/* ФИКСИРОВАННЫЙ Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-white shadow-sm border-b border-black h-14">
+            <header className={`fixed top-0 left-0 right-0 z-40 bg-blue-600 text-white h-14 transition-all duration-300 ${scrolled ? 'shadow-lg' : ''}`}>
                 <div className="container mx-auto h-full px-4">
                     <div className="flex justify-between items-center h-full">
+                        {/* Логотип */}
                         <Link
                             href="/results"
-                            className="text-left hover:opacity-80 transition-opacity"
+                            className="flex items-center hover:opacity-80 transition-opacity"
                         >
-                            <h1 className="text-lg font-bold">СъёмБронь</h1>
+                            <h1 className="text-lg font-bold tracking-tight">СъёмБронь</h1>
                         </Link>
 
-                        <nav className="flex items-center gap-3">
+                        {/* Правая часть */}
+                        <nav className="flex items-center gap-2 md:gap-3">
                             {user ? (
                                 <>
-                                    {/* Десктопная кнопка добавления жилья */}
-                                    <button
-                                        onClick={() => setShowAddApartmentModal(true)}
-                                        className="hidden md:flex bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm items-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        <span>Добавить жилье</span>
-                                    </button>
+                                   
 
-                                    {/* Приветствие - только на десктопе */}
+                                    {/* Приветствие - только на десктопах */}
                                     <div className="hidden md:block">
                                         <p className="text-sm font-medium">
                                             Привет, {getDisplayName(user.name)}!
                                         </p>
                                     </div>
 
-                                    {/* Иконка профиля - и на мобиле и на десктопе */}
+                                    {/* Иконка профиля - всегда видна */}
                                     <Link
                                         href="/profile"
                                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                        title="Профиль"
                                     >
-                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                        <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center border-2 border-white/30">
                                             <UserIcon className="w-4 h-4" />
                                         </div>
-                                        <span className="hidden lg:inline text-sm">
+                                        {/* Имя рядом с иконкой - только на десктопах */}
+                                        <span className="hidden lg:inline text-sm ml-1">
                                             {getDisplayName(user.name)}
                                         </span>
                                     </Link>
@@ -73,7 +95,7 @@ export default function Header() {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setShowLoginModal(true)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm"
+                                        className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-md font-medium transition-colors text-sm"
                                     >
                                         Войти
                                     </button>
