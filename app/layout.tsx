@@ -23,10 +23,19 @@ export default function RootLayout({
 
   // Определяем, нужна ли навигация на текущей странице
   const showNavigation = !['/'].includes(pathname); // НЕ показываем на главной
+  const isHomePage = pathname === '/';
 
   return (
     <html lang="ru" className={inter.className}>
-      <body className="min-h-screen bg-background">
+      <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0"
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className={`bg-background ${isHomePage ? 'overflow-auto' : 'min-h-screen'}`}>
         <AuthProvider>
           {/* Header всегда наверху */}
           <Header />
@@ -34,14 +43,35 @@ export default function RootLayout({
           {/* Sidebar для десктопов (если нужна навигация) */}
           {showNavigation && <Sidebar />}
 
-          {/* Основной контент с отступами */}
-          <main className={`min-h-screen ${showNavigation ? 'lg:ml-64' : ''}`}>
+          {/* Основной контент */}
+          <main className={`${showNavigation ? 'lg:ml-64' : ''} ${isHomePage ? 'mt-14' : 'min-h-screen'}`}>
             {children}
           </main>
 
           {/* BottomNavigationBar для мобильных (если нужна навигация) */}
           {showNavigation && <BottomNavigationBar />}
         </AuthProvider>
+
+        {/* Абсолютный скрипт для фикса скролла на главной */}
+        {isHomePage && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                document.addEventListener('DOMContentLoaded', function() {
+                  // Фикс для iOS скролла
+                  document.body.style.height = 'auto';
+                  document.body.style.overflow = 'auto';
+                  document.documentElement.style.overflow = 'auto';
+                  
+                  // Фикс для touch событий
+                  document.addEventListener('touchmove', function(e) {
+                    e.stopPropagation();
+                  }, { passive: true });
+                });
+              `
+            }}
+          />
+        )}
       </body>
     </html>
   );

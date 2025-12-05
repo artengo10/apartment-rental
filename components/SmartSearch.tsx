@@ -1,6 +1,6 @@
-// components/SmartSearch.tsx - ПОЛНОСТЬЮ ПЕРЕРАБОТАННЫЙ
+// components/SmartSearch.tsx
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 type PropertyType = 'apartment' | 'house' | 'studio' | 'all';
@@ -8,14 +8,43 @@ type PropertyType = 'apartment' | 'house' | 'studio' | 'all';
 const SmartSearch = () => {
     const router = useRouter();
     const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth <= 768;
+            setIsMobile(mobile);
+
+            // Фикс для iOS скролла
+            if (mobile) {
+                const container = document.getElementById('smart-search');
+                if (container) {
+                    container.style.overflowY = 'visible';
+                    container.style.maxHeight = 'none';
+                }
+            }
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        // Гарантируем что контейнер не блокирует скролл
+        const container = document.getElementById('smart-search');
+        if (container) {
+            container.style.touchAction = 'pan-y';
+            container.style.overscrollBehavior = 'auto';
+        }
+
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+        };
+    }, []);
 
     const handlePropertyTypeSelect = (type: PropertyType) => {
         setSelectedType(type);
 
-        // Сохраняем выбранный тип и переходим на страницу результатов
         const searchCriteria = {
             propertyType: type,
-            // Добавляем остальные параметры по умолчанию
             roomCount: 'any' as const,
             priceRange: { min: '', max: '' },
             district: 'all',
@@ -29,7 +58,14 @@ const SmartSearch = () => {
     const totalApartments = 100;
 
     return (
-        <div className="max-w-2xl mx-auto bg-white rounded-lg border-2 border-black p-4 sm:p-8 shadow-lg">
+        <div
+            id="smart-search"
+            className="max-w-2xl mx-auto bg-white rounded-lg border-2 border-black p-4 sm:p-8 shadow-lg"
+            style={{
+                touchAction: 'pan-y',
+                overflow: 'visible'
+            }}
+        >
             {/* Уведомление с количеством квартир */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center">
                 <p className="text-blue-800 font-medium">
@@ -44,6 +80,7 @@ const SmartSearch = () => {
                     <button
                         onClick={() => handlePropertyTypeSelect('apartment')}
                         className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
+                        style={{ touchAction: 'manipulation' }}
                     >
                         <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🏢</div>
                         <span className="font-semibold text-sm sm:text-base">Квартира</span>
@@ -53,6 +90,7 @@ const SmartSearch = () => {
                     <button
                         onClick={() => handlePropertyTypeSelect('house')}
                         className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
+                        style={{ touchAction: 'manipulation' }}
                     >
                         <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🏠</div>
                         <span className="font-semibold text-sm sm:text-base">Дом</span>
@@ -62,6 +100,7 @@ const SmartSearch = () => {
                     <button
                         onClick={() => handlePropertyTypeSelect('studio')}
                         className="p-4 sm:p-6 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
+                        style={{ touchAction: 'manipulation' }}
                     >
                         <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">📐</div>
                         <span className="font-semibold text-sm sm:text-base">Студия</span>
@@ -71,6 +110,7 @@ const SmartSearch = () => {
                     <button
                         onClick={() => handlePropertyTypeSelect('all')}
                         className="p-4 sm:p-6 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center min-h-[120px] justify-center"
+                        style={{ touchAction: 'manipulation' }}
                     >
                         <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">🔍</div>
                         <span className="font-semibold text-sm sm:text-base">Все варианты</span>

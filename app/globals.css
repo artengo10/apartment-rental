@@ -75,6 +75,7 @@
   border-color: var(--border);
   outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -87,6 +88,20 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Фикс для скролла на iOS */
+html {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  position: relative;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 /* Mobile-first типографика */
@@ -169,17 +184,14 @@ small, .text-sm {
   }
 }
 
-/* Плавная прокрутка */
-html {
-  scroll-behavior: smooth;
-  -webkit-tap-highlight-color: transparent;
-}
-
 /* Улучшения для мобильных устройств */
 @media (max-width: 640px) {
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
+    position: relative;
+    overflow-y: auto !important;
+    height: auto !important;
   }
   
   .container {
@@ -196,6 +208,19 @@ html {
   
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Для мобильного скролла */
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    height: 100%;
+    overscroll-behavior: contain;
+  }
+  
+  /* Отключаем bounce эффект на iOS */
+  .no-bounce {
+    overscroll-behavior-y: none;
   }
 }
 
@@ -401,6 +426,13 @@ html {
 .touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+.touch-friendly {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 /* Улучшения для форм на мобильных */
@@ -642,6 +674,13 @@ main {
   body {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
+  
+  /* Для главной страницы на мобильных - разрешаем скролл body */
+  body.home-page {
+    overflow-y: auto !important;
+    height: auto !important;
+    position: relative;
+  }
 }
 
 /* Улучшения для десктопной навигации */
@@ -652,5 +691,102 @@ main {
   
   .sidebar-content {
     transition: all 0.3s ease-in-out;
+  }
+}
+
+/* СРОЧНЫЙ ФИКС ДЛЯ СКРОЛЛА НА ГЛАВНОЙ СТРАНИЦЕ */
+
+/* Убираем все ограничения скролла на главной */
+html.home-page,
+html.home-page body {
+  position: static !important;
+  overflow: auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Фикс для touch-устройств */
+@media (max-width: 768px) {
+  body.mobile-scroll-enabled {
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+  }
+  
+  /* Разрешаем скролл на главной странице */
+  body[data-page="/"] {
+    position: relative !important;
+    height: auto !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Гарантированный скролл для контейнеров */
+  .force-scroll-mobile {
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Убираем все fixed позиционирования кроме Header */
+  body > *:not(header) {
+    position: relative !important;
+  }
+}
+
+/* Гарантия что Header не мешает */
+header {
+  z-index: 100;
+}
+
+/* Основной контент должен иметь отступ под Header */
+main {
+  position: relative;
+}
+
+/* Для главной страницы - специальные стили */
+.home-page-main {
+  min-height: calc(100vh - 56px) !important;
+  padding-top: 56px !important;
+}
+
+/* iOS фикс */
+@supports (-webkit-touch-callout: none) {
+  .ios-scroll-fix {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: scroll;
+    height: 100%;
+  }
+  
+  body.ios-fix {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .ios-scroll-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Отключаем pull-to-refresh на iOS */
+.no-pull-to-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* Фикс для Android Chrome */
+@supports not (-webkit-touch-callout: none) {
+  .android-scroll-fix {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  
+  .android-scroll-fix::-webkit-scrollbar {
+    display: none;
   }
 }
