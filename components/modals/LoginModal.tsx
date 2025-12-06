@@ -48,7 +48,7 @@ export default function LoginModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-[95vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b">
                     <h3 className="text-xl font-bold">Вход в аккаунт</h3>
                 </div>

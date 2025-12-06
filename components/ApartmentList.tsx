@@ -241,8 +241,7 @@ const ApartmentList = ({
             </div>
 
             <div className="flex-grow mb-3 sm:mb-6 min-h-0 overflow-auto">
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 h-full auto-rows-fr">
-                    {currentApartments.map((apartment) => {
+<div className="grid grid-cols-2 xs:grid-cols-2 gap-2 sm:gap-4 auto-rows-min">                    {currentApartments.map((apartment) => {
                         const isSelected = selectedApartmentId === apartment.id;
                         const isHighlighted = highlightedApartmentId === apartment.id;
                         const sellerReviews = generateSellerReviews(apartment.id);
@@ -309,7 +308,7 @@ const ApartmentList = ({
 
                                     {/* ИКОНКА ИЗБРАННОГО */}
                                     {showFavoriteHeart && (
-                                        <div className="absolute top-2 right-2">
+                                        <div className="absolute top-1 right-1 z-10">
                                             <FavoriteHeart
                                                 apartmentId={apartment.id}
                                                 onToggle={(isFavorite: boolean) => handleFavoriteToggle(isFavorite, apartment.id)}
@@ -359,17 +358,27 @@ const ApartmentList = ({
                                             </p>
                                         </div>
 
-                                        {/* КНОПКА КАРТЫ */}
+                                        {/* КНОПКА КАРТЫ - ИСПРАВЛЕННАЯ */}
                                         <button
                                             onClick={(e) => handleShowOnMap(apartment.id, e)}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-2 flex-shrink-0 sm:mt-1
-                                                ${isHighlighted
+                                            className={`
+    flex items-center justify-center 
+    gap-1 px-2 sm:px-3 py-1.5 
+    rounded-lg text-xs font-medium transition-colors 
+    ml-2 flex-shrink-0
+    ${isHighlighted
                                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                    : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                                }
+  `}
                                             title={isHighlighted ? "Снять выделение с карты" : "Показать на карте"}
+                                            style={{
+                                                minWidth: '32px',
+                                                minHeight: '32px'
+                                            }}
                                         >
-                                            <MapPin className="w-3 h-3" />
-                                            <span className="hidden xs:inline">
+                                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                                            <span className="hidden xs:inline whitespace-nowrap">
                                                 {isHighlighted ? "На карте" : "Карта"}
                                             </span>
                                         </button>

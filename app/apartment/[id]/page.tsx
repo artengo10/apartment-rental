@@ -565,13 +565,20 @@ export default function ApartmentDetail() {
 
             {/* Модальное окно бронирования */}
             {showBookingModal && apartment && (
-                <BookingModal
-                    apartmentId={apartment.id}
-                    apartmentTitle={apartment.title}
-                    hostId={apartment.hostId}
-                    isOpen={showBookingModal}
-                    onClose={() => setShowBookingModal(false)}
-                />
+                <div className="modal-above-header">
+                    <BookingModal
+                        apartmentId={apartment.id}
+                        apartmentTitle={apartment.title}
+                        hostId={apartment.hostId}
+                        isOpen={showBookingModal}
+                        onClose={() => {
+                            setShowBookingModal(false);
+                            // Восстанавливаем скролл body
+                            document.body.style.overflow = '';
+                            document.body.style.position = '';
+                        }}
+                    />
+                </div>
             )}
         </div>
     );

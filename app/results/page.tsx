@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import MapComponent from '@/components/MapComponent';
 import ApartmentList from '@/components/ApartmentList';
 import FilterModal from '@/components/FilterModal';
+import FullscreenMapModal from '@/components/FullscreenMapModal';
 import Link from 'next/link';
 import { getSearchCriteria } from '@/lib/search-utils';
 import { SearchCriteria } from '@/types/scoring';
@@ -48,6 +49,7 @@ export default function ResultsPage() {
     const [isMobile, setIsMobile] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isFullscreenMapOpen, setIsFullscreenMapOpen] = useState(false);
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
     const { user, isLoading: authLoading } = useAuth();
@@ -64,7 +66,18 @@ export default function ResultsPage() {
 
         fetchApartments();
 
-        return () => window.removeEventListener('resize', checkMobile);
+        // Обработчик события для открытия полноэкранной карты
+        const handleOpenFullscreenMap = () => {
+            console.log('Событие openFullscreenMap получено, открываю модалку');
+            setIsFullscreenMapOpen(true);
+        };
+
+        window.addEventListener('openFullscreenMap', handleOpenFullscreenMap as EventListener);
+
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            window.removeEventListener('openFullscreenMap', handleOpenFullscreenMap as EventListener);
+        };
     }, []);
 
     const transformApiDataToApartment = (apiApartment: ApiApartment): Apartment => {
@@ -233,7 +246,7 @@ export default function ResultsPage() {
             searchCriteria?.propertyType === 'studio' ? 'Студии' : 'Все варианты';
 
     return (
-        <div className="pt-14 pb-16 lg:pb-0">
+        <div className="pt-0 pb-16 lg:pb-0">
             <div className="container mx-auto px-3 sm:px-6 py-6">
                 <div className="mb-6 flex justify-between items-center">
                     <div>
@@ -341,6 +354,16 @@ export default function ResultsPage() {
                     searchCriteria={searchCriteria}
                     onApply={handleFilterApply}
                     onClose={() => setShowFilterModal(false)}
+                />
+            )}
+
+            {/* Модалка полноэкранной карты */}
+            {isFullscreenMapOpen && (
+                <FullscreenMapModal
+                    apartments={filteredApartments}
+                    isOpen={isFullscreenMapOpen}
+                    onClose={() => setIsFullscreenMapOpen(false)}
+                    highlightedApartmentId={highlightedApartmentId}
                 />
             )}
 

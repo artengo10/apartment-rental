@@ -1228,6 +1228,9 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
         };
     }, [allImages]);
 
+
+    
+
     useEffect(() => {
         if (editingApartment) {
             setFormData({
@@ -1461,8 +1464,7 @@ export default function AddApartmentWizard({ isOpen, onClose, onSuccess, editing
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
+            <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">                <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">
                         {editingApartment ? 'Редактировать жилье' : 'Добавить жилье'}
                     </h2>

@@ -4,7 +4,6 @@
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import Header from '@/components/Header';
-import BottomNavigationBar from '@/components/BottomNavigationBar';
 import Sidebar from '@/components/Sidebar';
 import './globals.css';
 import { usePathname } from 'next/navigation';
@@ -22,8 +21,9 @@ export default function RootLayout({
   const pathname = usePathname();
 
   // Определяем, нужна ли навигация на текущей странице
-  const showNavigation = !['/'].includes(pathname); // НЕ показываем на главной
+  const showNavigation = !['/', '/admin'].includes(pathname); // НЕ показываем на главной и админке
   const isHomePage = pathname === '/';
+  const isAdminPage = pathname.startsWith('/admin');
 
   return (
     <html lang="ru" className={inter.className}>
@@ -35,43 +35,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`bg-background ${isHomePage ? 'overflow-auto' : 'min-h-screen'}`}>
-        <AuthProvider>
-          {/* Header всегда наверху */}
-          <Header />
+      <body className={`${isHomePage ? '' : 'min-h-screen'} relative`}>        <AuthProvider>
+          {/* Header всегда наверху, кроме админки */}
+          {!isAdminPage && <Header />}
 
           {/* Sidebar для десктопов (если нужна навигация) */}
           {showNavigation && <Sidebar />}
 
           {/* Основной контент */}
-          <main className={`${showNavigation ? 'lg:ml-64' : ''} ${isHomePage ? 'mt-14' : 'min-h-screen'}`}>
+          <main
+            className={`
+              ${showNavigation ? 'lg:ml-64' : ''} 
+              ${isHomePage ? 'mt-0' : 'mt-14'}
+            `}
+          >
             {children}
           </main>
-
-          {/* BottomNavigationBar для мобильных (если нужна навигация) */}
-          {showNavigation && <BottomNavigationBar />}
         </AuthProvider>
-
-        {/* Абсолютный скрипт для фикса скролла на главной */}
-        {isHomePage && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                document.addEventListener('DOMContentLoaded', function() {
-                  // Фикс для iOS скролла
-                  document.body.style.height = 'auto';
-                  document.body.style.overflow = 'auto';
-                  document.documentElement.style.overflow = 'auto';
-                  
-                  // Фикс для touch событий
-                  document.addEventListener('touchmove', function(e) {
-                    e.stopPropagation();
-                  }, { passive: true });
-                });
-              `
-            }}
-          />
-        )}
       </body>
     </html>
   );

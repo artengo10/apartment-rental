@@ -89,7 +89,7 @@ const Sidebar = () => {
 
     return (
         <>
-            <div className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-300 h-[calc(100vh-56px)] fixed left-0 top-14 z-40">
+            <div className="hidden lg:flex flex-col w-65 bg-white border-r border-gray-300 h-[calc(100vh-56px)] fixed left-0 top-14 z-40">
                 {/* Профиль пользователя вверху */}
                 {user ? (
                     <div className="p-3 border-b border-gray-200">
@@ -129,7 +129,7 @@ const Sidebar = () => {
                         {navItems.map((item) => {
                             const content = (
                                 <>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-5">
                                         <div className="relative">
                                             <item.icon className={`w-5 h-5 ${item.active ? 'text-blue-600' : 'text-gray-600'}`} />
                                             {item.badge && item.badge > 0 && (

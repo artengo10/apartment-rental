@@ -1,4 +1,4 @@
-// components/FavoriteHeart.tsx - УПРОЩЕННАЯ ВЕРСИЯ
+// components/FavoriteHeart.tsx - ИСПРАВЛЕННЫЙ
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,16 +50,13 @@ export default function FavoriteHeart({
         setIsLoading(true);
 
         try {
-            // Мгновенное обновление UI
             const newFavoriteState = !currentIsFavorite;
             setCurrentIsFavorite(newFavoriteState);
             onToggle?.(newFavoriteState);
 
-            // Выполняем запрос к API
             const success = await toggleFavorite(apartmentId);
 
             if (!success) {
-                // Если запрос не удался, возвращаем предыдущее состояние
                 setCurrentIsFavorite(!newFavoriteState);
                 onToggle?.(!newFavoriteState);
             }
@@ -73,26 +70,37 @@ export default function FavoriteHeart({
     };
 
     return (
-        <button
-            onClick={handleToggleFavorite}
-            disabled={isLoading || loading}
-            className={cn(
-                "p-1.5 rounded-full transition-all duration-200 hover:scale-110",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                currentIsFavorite
-                    ? "text-red-500 bg-red-50 hover:bg-red-100"
-                    : "text-gray-400 bg-white/80 hover:bg-gray-100 hover:text-gray-600",
-                className
-            )}
-            title={currentIsFavorite ? "Удалить из избранного" : "Добавить в избранное"}
-        >
-            <Heart
+        <div className={cn(
+            "flex items-center justify-center", // ОБЯЗАТЕЛЬНО flex и центрирование
+            "relative", // Для позиционирования внутри
+            className
+        )}>
+            <button
+                onClick={handleToggleFavorite}
+                disabled={isLoading || loading}
                 className={cn(
-                    sizeClasses[size],
-                    "transition-all duration-200",
-                    currentIsFavorite && "fill-current"
+                    "flex items-center justify-center", // ГЛАВНОЕ ИСПРАВЛЕНИЕ!
+                    "p-1.5 rounded-full transition-all duration-200 hover:scale-110",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "w-9 h-9", // Фиксированная ширина и высота для центрирования
+                    currentIsFavorite
+                        ? "text-red-500 bg-red-50 hover:bg-red-100"
+                        : "text-gray-400 bg-white/80 hover:bg-gray-100 hover:text-gray-600",
                 )}
-            />
-        </button>
+                title={currentIsFavorite ? "Удалить из избранного" : "Добавить в избранное"}
+                style={{
+                    minWidth: '36px', // Минимальная ширина для touch-устройств
+                    minHeight: '36px' // Минимальная высота
+                }}
+            >
+                <Heart
+                    className={cn(
+                        sizeClasses[size],
+                        "transition-all duration-200",
+                        currentIsFavorite && "fill-current"
+                    )}
+                />
+            </button>
+        </div>
     );
 }
