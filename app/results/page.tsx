@@ -363,11 +363,20 @@ export default function ResultsPage() {
             )}
 
             {/* Упрощенный футер */}
-            {filteredApartments.length > 0 && (
-                <div className="mt-6 text-center text-xs text-gray-500">
-                    <p>© 2024 СъёмБронь. Все права защищены.</p>
+            <footer className="bg-gray-900 text-white py-5 mt-26">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center">
+                        <h3 className="text-xl font-semibold mb-4">СъёмБронь</h3>
+                        <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+                            Сервис поиска и бронирования жилья в Нижегородской области
+                        </p>
+                        <div className="text-sm text-gray-400">
+                            <p>© 2024 Все права защищены</p>
+                            <p className="mt-2">Работаем в Нижнем Новгороде, Дзержинске, Арзамасе и других городах области</p>
+                        </div>
+                    </div>
                 </div>
-            )}
+            </footer>
         </div>
     );
 }

@@ -6,16 +6,28 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 
-type TabType = 'profile' | 'apartments' | 'reviews' | 'chat';
+// Обновили тип, добавив 'favorites'
+type TabType = 'profile' | 'apartments' | 'reviews' | 'chat' | 'favorites';
 
 export default function ProfilePage() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<TabType>('profile');
     const [isClient, setIsClient] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
+
+        // Проверяем мобильное устройство
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
     // Плавный переход если пользователь не авторизован
@@ -57,7 +69,6 @@ export default function ProfilePage() {
             router.push('/');
         }, 100);
     };
-
 
     // Добавьте этот компонент в app/profile/page.tsx перед существующим кодом
     const EditProfileForm = ({ user, onSave, onCancel }: {
@@ -176,7 +187,6 @@ export default function ProfilePage() {
         );
     };
 
-
     const ProfileInfo = () => {
         const { user } = useAuth();
         const [isEditing, setIsEditing] = useState(false);
@@ -230,8 +240,8 @@ export default function ProfilePage() {
                             <label className="text-sm text-gray-500">Статус</label>
                             <p className="font-medium">
                                 <span className={`px-2 py-1 rounded-full text-xs ${currentUser?.isVerified
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-yellow-100 text-yellow-800'
                                     }`}>
                                     {currentUser?.isVerified ? 'Подтвержден' : 'Не подтвержден'}
                                 </span>
@@ -361,8 +371,8 @@ export default function ProfilePage() {
                                         <span
                                             key={i}
                                             className={`text-xl ${i < review.rating
-                                                    ? 'text-yellow-400'
-                                                    : 'text-gray-300'
+                                                ? 'text-yellow-400'
+                                                : 'text-gray-300'
                                                 }`}
                                         >
                                             ★
@@ -381,7 +391,7 @@ export default function ProfilePage() {
             </div>
         );
     };
-    
+
     const Chat = () => (
         <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-xl font-semibold mb-4">Сообщения</h3>
@@ -396,6 +406,30 @@ export default function ProfilePage() {
             </div>
         </div>
     );
+
+    const Favorites = () => (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-xl font-semibold mb-4">Избранное</h3>
+            <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">Здесь будут ваши избранные объявления</p>
+                <Link
+                    href="/favorites"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-block"
+                >
+                    Перейти к избранному
+                </Link>
+            </div>
+        </div>
+    );
+
+    // Массив вкладок с добавлением "Избранное"
+    const tabs = [
+        { id: 'profile' as TabType, name: 'Профиль', icon: '👤' },
+        { id: 'apartments' as TabType, name: 'Мои объявления', icon: '🏠' },
+        { id: 'reviews' as TabType, name: 'Отзывы', icon: '⭐' },
+        { id: 'chat' as TabType, name: 'Сообщения', icon: '💬' },
+        { id: 'favorites' as TabType, name: 'Избранное', icon: '❤️' }, // Добавили новую вкладку
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -432,28 +466,31 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Вкладки */}
+                    {/* Вкладки с горизонтальным скроллом на мобильных */}
                     <div className="border-b border-gray-200 mb-6">
-                        <nav className="flex space-x-8">
-                            {[
-                                { id: 'profile' as TabType, name: 'Профиль', icon: '👤' },
-                                { id: 'apartments' as TabType, name: 'Мои объявления', icon: '🏠' },
-                                { id: 'reviews' as TabType, name: 'Отзывы', icon: '⭐' },
-                                { id: 'chat' as TabType, name: 'Сообщения', icon: '💬' },
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <span>{tab.icon}</span>
-                                    {tab.name}
-                                </button>
-                            ))}
-                        </nav>
+                        {/* Контейнер для вкладок с горизонтальным скроллом */}
+                        <div className={`relative ${isMobile ? 'overflow-x-auto pb-2' : ''}`}>
+                            <nav className={`flex ${isMobile ? 'space-x-4 min-w-max' : 'space-x-8'}`}>
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <span>{tab.icon}</span>
+                                        {tab.name}
+                                    </button>
+                                ))}
+                            </nav>
+
+                            {/* Индикатор прокрутки для мобильных */}
+                            {isMobile && (
+                                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Контент вкладок */}
@@ -462,6 +499,7 @@ export default function ProfilePage() {
                         {activeTab === 'apartments' && <MyApartments />}
                         {activeTab === 'reviews' && <Reviews />}
                         {activeTab === 'chat' && <Chat />}
+                        {activeTab === 'favorites' && <Favorites />} {/* Добавили рендеринг вкладки */}
                     </div>
                 </div>
             </div>
