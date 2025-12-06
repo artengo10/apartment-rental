@@ -291,12 +291,7 @@ export default function ResultsPage() {
                             </Link>
                         )}
 
-                        <Link
-                            href="/"
-                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 sm:px-3 sm:py-1.5 rounded-md font-medium transition-colors text-xs sm:text-xs h-fit min-h-[36px] sm:min-h-[32px] flex items-center whitespace-nowrap"
-                        >
-                            Новый поиск
-                        </Link>
+                    
                     </div>
                 </div>
 
